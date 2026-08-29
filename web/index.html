@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SPEND — Retro Cyberpunk Financial Manager</title>
+  <title>SPEND — Minimalist Financial Manager</title>
   
-  <!-- Google Fonts & Tailwind CDN -->
+  <!-- Fonts & Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,800;1,400&family=Outfit:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Lucide Icons & Chart.js -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -21,21 +21,21 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Outfit', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
           },
           colors: {
-            brand: {
-              cyan: '#00e5ff',
-              magenta: '#b5179e',
-              purple: '#9d4edd',
-              pink: '#ff79c6',
-              green: '#50fa7b',
-              yellow: '#f1fa8c',
-              dark: '#0b0f19',
-              darker: '#06080e',
-              card: '#111726',
-              border: '#1f293d',
+            dark: {
+              bg: '#0c1017',        // Deep matte dark slate from screenshot
+              card: '#121824',      // Card background
+              cardHover: '#161e2e',
+              border: '#1e293b',    // Subtle clean border
+              input: '#0f141f',
+              amber: '#f59e0b',     // VisionTracker accent amber/gold
+              amberLight: '#fbbf24',
+              accent: '#38bdf8',    // Clean soft blue
+              muted: '#64748b',     // Slate muted text
+              text: '#f1f5f9'
             }
           }
         }
@@ -45,443 +45,455 @@
 
   <style>
     body {
-      background: radial-gradient(circle at 50% 0%, #151d30 0%, #06080e 100%);
-      color: #f8f8f2;
-    }
-    .neon-border-cyan {
-      box-shadow: 0 0 15px -3px rgba(0, 229, 255, 0.2);
-    }
-    .neon-border-magenta {
-      box-shadow: 0 0 15px -3px rgba(181, 23, 158, 0.25);
+      background-color: #0c1017;
+      background-image: radial-gradient(#1e293b 0.75px, transparent 0.75px);
+      background-size: 24px 24px;
+      color: #f1f5f9;
     }
     .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: #0b0f19;
+      background: #0c1017;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #1f293d;
+      background: #1e293b;
       border-radius: 4px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #00e5ff;
-    }
-    .glass {
-      background: rgba(17, 23, 38, 0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: #334155;
     }
   </style>
 </head>
-<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-brand-cyan selection:text-black">
+<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-dark-amber selection:text-black">
 
-  <!-- TOP RETRO BANNER -->
-  <header class="border-b border-brand-border glass sticky top-0 z-40 px-6 py-3 flex items-center justify-between">
+  <!-- TOP MINIMAL NAV (Matching Pill Navigation in screenshot) -->
+  <header class="w-full max-w-6xl mx-auto pt-6 px-6 pb-2 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <div class="h-10 w-10 rounded-lg bg-gradient-to-tr from-brand-cyan to-brand-magenta flex items-center justify-center font-mono font-black text-black text-xl shadow-lg shadow-cyan-500/20">
-        ⚡
-      </div>
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="font-mono font-black tracking-widest text-2xl bg-gradient-to-r from-brand-cyan via-brand-pink to-brand-magenta bg-clip-text text-transparent">SPEND</span>
-          <span class="text-xs font-mono uppercase bg-cyan-950/80 border border-cyan-500/40 text-brand-cyan px-2 py-0.5 rounded-full font-bold">GUI v1.0</span>
-        </div>
-        <p class="text-xs text-slate-400 font-mono">Personal Expense & Khata Suite</p>
+      <!-- Pill Logo Badge -->
+      <div class="flex items-center gap-2 bg-dark-card border border-dark-border px-3.5 py-1.5 rounded-full shadow-sm">
+        <div class="w-2 h-2 rounded-full bg-dark-amber animate-pulse"></div>
+        <span class="font-mono font-bold text-sm text-white tracking-wide">SPEND</span>
+        <span class="font-mono text-[10px] text-dark-amber bg-dark-amber/10 border border-dark-amber/30 px-1.5 py-0.5 rounded font-semibold uppercase">Finance</span>
       </div>
     </div>
 
-    <!-- Live Month Selector & Quick Stats -->
-    <div class="flex items-center gap-4">
-      <div class="flex items-center bg-brand-darker border border-brand-border rounded-lg px-3 py-1.5 font-mono text-sm">
-        <span class="text-slate-400 mr-2 text-xs">MONTH:</span>
-        <input type="month" id="monthPicker" class="bg-transparent text-brand-cyan font-bold outline-none cursor-pointer" onchange="loadDashboard()">
+    <!-- Right Controls -->
+    <div class="flex items-center gap-3">
+      <div class="flex items-center bg-dark-card border border-dark-border rounded-full px-3.5 py-1.5 text-xs font-mono">
+        <span class="text-dark-muted mr-2">MONTH:</span>
+        <input type="month" id="monthPicker" class="bg-transparent text-dark-amber font-semibold outline-none cursor-pointer text-xs" onchange="loadDashboard()">
       </div>
 
-      <button onclick="openModal('modalAddExpense')" class="bg-gradient-to-r from-brand-cyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-all shadow-md shadow-cyan-500/20">
-        <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Expense
+      <button onclick="openModal('modalAddExpense')" class="bg-dark-amber hover:bg-dark-amberLight text-black font-semibold px-4 py-1.5 rounded-full text-xs flex items-center gap-1.5 transition-all shadow-sm">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Expense
       </button>
     </div>
   </header>
 
+  <!-- HERO TITLE SECTION (Matching Typography from screenshot) -->
+  <div class="w-full max-w-6xl mx-auto px-6 pt-6 pb-4">
+    <div class="text-[11px] font-mono font-bold tracking-widest text-dark-amber uppercase mb-1">
+      Intelligent Financial Tracking & Analytics
+    </div>
+    <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+      Personal Expense Tracker with <span class="text-dark-amber">Smart Analytics.</span>
+    </h1>
+    <p class="text-xs md:text-sm text-dark-muted mt-1 max-w-2xl">
+      Track daily expenditures, monitor monthly budget ceilings, visualize spending trajectories, and manage loans in real-time.
+    </p>
+  </div>
+
+  <!-- NAVIGATION PILLS -->
+  <div class="w-full max-w-6xl mx-auto px-6 py-2">
+    <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-2">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-pill active bg-dark-card border border-dark-amber/40 text-dark-amber px-4 py-1.5 rounded-full text-xs font-mono font-medium flex items-center gap-2 transition-all">
+        <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> Overview
+      </button>
+      <button onclick="switchTab('transactions')" id="nav-transactions" class="nav-pill bg-dark-card/60 hover:bg-dark-card border border-dark-border text-dark-muted hover:text-white px-4 py-1.5 rounded-full text-xs font-mono font-medium flex items-center gap-2 transition-all">
+        <i data-lucide="receipt" class="w-3.5 h-3.5"></i> Transactions
+      </button>
+      <button onclick="switchTab('loans')" id="nav-loans" class="nav-pill bg-dark-card/60 hover:bg-dark-card border border-dark-border text-dark-muted hover:text-white px-4 py-1.5 rounded-full text-xs font-mono font-medium flex items-center gap-2 transition-all">
+        <i data-lucide="hand-coins" class="w-3.5 h-3.5"></i> Lending & Khata
+      </button>
+      <button onclick="switchTab('ai')" id="nav-ai" class="nav-pill bg-dark-card/60 hover:bg-dark-card border border-dark-border text-dark-muted hover:text-white px-4 py-1.5 rounded-full text-xs font-mono font-medium flex items-center gap-2 transition-all">
+        <i data-lucide="bot" class="w-3.5 h-3.5"></i> AI Advisor
+      </button>
+      <button onclick="switchTab('reports')" id="nav-reports" class="nav-pill bg-dark-card/60 hover:bg-dark-card border border-dark-border text-dark-muted hover:text-white px-4 py-1.5 rounded-full text-xs font-mono font-medium flex items-center gap-2 transition-all">
+        <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Export
+      </button>
+      <button onclick="switchTab('settings')" id="nav-settings" class="nav-pill bg-dark-card/60 hover:bg-dark-card border border-dark-border text-dark-muted hover:text-white px-4 py-1.5 rounded-full text-xs font-mono font-medium flex items-center gap-2 transition-all">
+        <i data-lucide="settings" class="w-3.5 h-3.5"></i> Settings
+      </button>
+    </div>
+  </div>
+
   <!-- MAIN CONTAINER -->
-  <div class="flex-1 flex max-w-[1600px] w-full mx-auto p-6 gap-6">
+  <main class="flex-1 w-full max-w-6xl mx-auto px-6 py-4 space-y-6">
 
-    <!-- SIDEBAR NAV -->
-    <aside class="w-64 flex flex-col gap-2 shrink-0">
-      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all border border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan font-mono">
-        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Overview & Charts
-      </button>
-      <button onclick="switchTab('transactions')" id="nav-transactions" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
-        <i data-lucide="receipt" class="w-4 h-4"></i> Transactions
-      </button>
-      <button onclick="switchTab('loans')" id="nav-loans" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
-        <i data-lucide="hand-coins" class="w-4 h-4"></i> Lending & Khata
-      </button>
-      <button onclick="switchTab('ai')" id="nav-ai" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
-        <i data-lucide="bot" class="w-4 h-4"></i> SPEND AI Advisor
-      </button>
-      <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
-        <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF / MD
-      </button>
-      <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
-        <i data-lucide="settings" class="w-4 h-4"></i> Categories & AI Key
-      </button>
-
-      <!-- Bottom System Status -->
-      <div class="mt-auto bg-brand-card/70 border border-brand-border rounded-xl p-4 text-xs font-mono">
-        <div class="flex items-center justify-between text-slate-400 mb-2">
-          <span>STORAGE</span>
-          <span class="text-brand-green">SQLite Live</span>
+    <!-- ============================================== -->
+    <!-- TAB: DASHBOARD -->
+    <!-- ============================================== -->
+    <section id="tab-dashboard" class="tab-content space-y-6">
+      
+      <!-- Top Overview Stats Cards (4 Columns) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        
+        <div class="bg-dark-card border border-dark-border rounded-xl p-4">
+          <div class="text-[11px] font-mono font-semibold uppercase text-dark-muted mb-1">Total Spending</div>
+          <div id="statTotalSpent" class="text-2xl font-mono font-bold text-white">₹0.00</div>
+          <div id="statTxnCount" class="text-[11px] text-dark-muted mt-1 font-mono">0 transactions</div>
         </div>
-        <div class="text-slate-500 truncate" title="~/.spend_tracker.db">~/.spend_tracker.db</div>
+
+        <div class="bg-dark-card border border-dark-border rounded-xl p-4">
+          <div class="text-[11px] font-mono font-semibold uppercase text-dark-muted mb-1 flex items-center justify-between">
+            <span>Budget Limit</span>
+            <button onclick="openSetBudgetModal()" class="text-dark-amber hover:underline text-[10px]">Set Goal</button>
+          </div>
+          <div id="statBudgetLimit" class="text-2xl font-mono font-bold text-dark-amber">₹0.00</div>
+          <div id="statBudgetStatus" class="text-[11px] text-dark-muted mt-1 font-mono">Not configured</div>
+        </div>
+
+        <div class="bg-dark-card border border-dark-border rounded-xl p-4">
+          <div class="text-[11px] font-mono font-semibold uppercase text-dark-muted mb-1">Money Lent (Owed)</div>
+          <div id="statLent" class="text-2xl font-mono font-bold text-emerald-400">₹0.00</div>
+          <div class="text-[11px] text-dark-muted mt-1 font-mono">Active Khata loans</div>
+        </div>
+
+        <div class="bg-dark-card border border-dark-border rounded-xl p-4">
+          <div class="text-[11px] font-mono font-semibold uppercase text-dark-muted mb-1">Debts (You Owe)</div>
+          <div id="statBorrowed" class="text-2xl font-mono font-bold text-rose-400">₹0.00</div>
+          <div id="statNetKhata" class="text-[11px] text-dark-muted mt-1 font-mono">Net: ₹0.00</div>
+        </div>
+
       </div>
-    </aside>
 
-    <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 min-w-0 space-y-6">
-
-      <!-- ============================================== -->
-      <!-- TAB: DASHBOARD -->
-      <!-- ============================================== -->
-      <section id="tab-dashboard" class="tab-content space-y-6">
-        <!-- Top Stats Row -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          
-          <div class="bg-brand-card border border-brand-border rounded-2xl p-5 relative overflow-hidden neon-border-cyan">
-            <div class="text-xs font-mono uppercase text-slate-400 mb-1">Total Spending</div>
-            <div id="statTotalSpent" class="text-3xl font-mono font-black text-brand-cyan">₹0.00</div>
-            <div id="statTxnCount" class="text-xs text-slate-400 mt-2 font-mono">0 transactions</div>
-          </div>
-
-          <div class="bg-brand-card border border-brand-border rounded-2xl p-5 relative overflow-hidden">
-            <div class="text-xs font-mono uppercase text-slate-400 mb-1 flex items-center justify-between">
-              <span>Budget Limit</span>
-              <button onclick="openSetBudgetModal()" class="text-brand-cyan hover:underline text-[11px]">Set Goal</button>
+      <!-- Two Column Layout (Matching Image Source & Visualizer Canvas in screenshot) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Panel: Category Breakdown & Quick Actions (4 Cols) -->
+        <div class="lg:col-span-4 bg-dark-card border border-dark-border rounded-xl p-5 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="text-[11px] font-mono font-bold text-dark-muted uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <i data-lucide="pie-chart" class="w-3.5 h-3.5 text-dark-amber"></i> Category Distribution
             </div>
-            <div id="statBudgetLimit" class="text-3xl font-mono font-black text-brand-yellow">₹0.00</div>
-            <div id="statBudgetStatus" class="text-xs text-slate-400 mt-2 font-mono">Not configured</div>
-          </div>
-
-          <div class="bg-brand-card border border-brand-border rounded-2xl p-5 relative overflow-hidden">
-            <div class="text-xs font-mono uppercase text-slate-400 mb-1">Money Lent (Owed to You)</div>
-            <div id="statLent" class="text-3xl font-mono font-black text-brand-green">₹0.00</div>
-            <div class="text-xs text-slate-400 mt-2 font-mono">From active Khata loans</div>
-          </div>
-
-          <div class="bg-brand-card border border-brand-border rounded-2xl p-5 relative overflow-hidden">
-            <div class="text-xs font-mono uppercase text-slate-400 mb-1">Debts (You Owe)</div>
-            <div id="statBorrowed" class="text-3xl font-mono font-black text-brand-pink">₹0.00</div>
-            <div id="statNetKhata" class="text-xs text-slate-400 mt-2 font-mono">Net: ₹0.00</div>
-          </div>
-        </div>
-
-        <!-- Charts Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Daily Trend Line Chart (2 Cols) -->
-          <div class="lg:col-span-2 bg-brand-card border border-brand-border rounded-2xl p-6">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="font-bold text-lg text-white flex items-center gap-2">
-                  <i data-lucide="trending-up" class="w-5 h-5 text-brand-cyan"></i> Daily Spending Curve
-                </h3>
-                <p class="text-xs text-slate-400 font-mono">Day-by-day continuous timeline & spikes</p>
-              </div>
-              <span id="badgePeakDay" class="text-xs font-mono bg-cyan-950 text-brand-cyan border border-cyan-500/30 px-2.5 py-1 rounded-full">Peak: -</span>
-            </div>
-            <div class="h-64 w-full">
-              <canvas id="chartDailyCurve"></canvas>
-            </div>
-          </div>
-
-          <!-- Category Donut Distribution -->
-          <div class="bg-brand-card border border-brand-border rounded-2xl p-6 flex flex-col">
-            <h3 class="font-bold text-lg text-white mb-1 flex items-center gap-2">
-              <i data-lucide="pie-chart" class="w-5 h-5 text-brand-magenta"></i> Category Share
-            </h3>
-            <p class="text-xs text-slate-400 font-mono mb-4">Proportional expense allocation</p>
-            <div class="flex-1 flex items-center justify-center min-h-[220px]">
+            <div class="h-48 flex items-center justify-center">
               <canvas id="chartCategoryDonut"></canvas>
             </div>
           </div>
-        </div>
 
-        <!-- Bottom Month-over-Month Bar Chart -->
-        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="font-bold text-lg text-white flex items-center gap-2">
-                <i data-lucide="bar-chart-3" class="w-5 h-5 text-brand-purple"></i> Month-over-Month Trajectory
-              </h3>
-              <p class="text-xs text-slate-400 font-mono">Past 12 months historical spending comparison</p>
+          <div class="pt-3 border-t border-dark-border/60">
+            <div class="text-[11px] font-mono font-bold text-dark-muted uppercase tracking-wider mb-2">
+              Quick Presets
             </div>
-          </div>
-          <div class="h-56 w-full">
-            <canvas id="chartMonthlyHistory"></canvas>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================================== -->
-      <!-- TAB: TRANSACTIONS -->
-      <!-- ============================================== -->
-      <section id="tab-transactions" class="tab-content hidden space-y-4">
-        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
-          <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-            <div>
-              <h3 class="font-bold text-xl text-white">Itemized Transactions</h3>
-              <p class="text-xs text-slate-400 font-mono">Browse, filter, search, and manage your logs</p>
-            </div>
-            <div class="flex items-center gap-3">
-              <input type="text" id="txSearchInput" placeholder="Search note, category..." class="bg-brand-darker border border-brand-border rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 font-mono outline-none focus:border-brand-cyan" onkeyup="filterTransactions()">
-              <select id="txCategoryFilter" class="bg-brand-darker border border-brand-border rounded-lg px-3 py-2 text-sm text-white font-mono outline-none focus:border-brand-cyan cursor-pointer" onchange="filterTransactions()">
-                <option value="All">All Categories</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="overflow-x-auto custom-scrollbar">
-            <table class="w-full text-left font-mono text-xs">
-              <thead class="bg-brand-darker text-slate-400 border-b border-brand-border">
-                <tr>
-                  <th class="p-3 text-center w-16">ID</th>
-                  <th class="p-3">DATE</th>
-                  <th class="p-3">CATEGORY</th>
-                  <th class="p-3">DESCRIPTION</th>
-                  <th class="p-3">METHOD</th>
-                  <th class="p-3 text-right">AMOUNT</th>
-                  <th class="p-3 text-center w-20">ACTION</th>
-                </tr>
-              </thead>
-              <tbody id="txTableBody" class="divide-y divide-brand-border/40">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================================== -->
-      <!-- TAB: LENDING & KHATA -->
-      <!-- ============================================== -->
-      <section id="tab-loans" class="tab-content hidden space-y-4">
-        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <h3 class="font-bold text-xl text-white flex items-center gap-2">
-                <i data-lucide="hand-coins" class="w-6 h-6 text-brand-green"></i> Lending & Debts Ledger
-              </h3>
-              <p class="text-xs text-slate-400 font-mono">Track money lent to friends and outstanding debts</p>
-            </div>
-            <button onclick="openModal('modalAddLoan')" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2">
-              <i data-lucide="plus" class="w-4 h-4"></i> New Loan / Debt
-            </button>
-          </div>
-
-          <div class="overflow-x-auto custom-scrollbar">
-            <table class="w-full text-left font-mono text-xs">
-              <thead class="bg-brand-darker text-slate-400 border-b border-brand-border">
-                <tr>
-                  <th class="p-3 text-center w-14">ID</th>
-                  <th class="p-3">TYPE</th>
-                  <th class="p-3">PERSON</th>
-                  <th class="p-3 text-right">PRINCIPAL</th>
-                  <th class="p-3 text-right">SETTLED</th>
-                  <th class="p-3 text-right">REMAINING</th>
-                  <th class="p-3">DUE DATE</th>
-                  <th class="p-3 text-center">STATUS</th>
-                  <th class="p-3">NOTES</th>
-                  <th class="p-3 text-center">ACTION</th>
-                </tr>
-              </thead>
-              <tbody id="loansTableBody" class="divide-y divide-brand-border/40">
-                <!-- Injected via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================================== -->
-      <!-- TAB: AI ADVISOR -->
-      <!-- ============================================== -->
-      <section id="tab-ai" class="tab-content hidden space-y-4">
-        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <h3 class="font-bold text-xl text-white flex items-center gap-2">
-                <i data-lucide="bot" class="w-6 h-6 text-brand-magenta"></i> SPEND AI Financial Advisor
-              </h3>
-              <p class="text-xs text-slate-400 font-mono">Deep spending audits, anomaly detection & cost optimization via Ollama / Gemini</p>
-            </div>
-            <button onclick="runFullAiAudit()" id="btnAiAudit" class="bg-gradient-to-r from-purple-600 to-brand-magenta hover:from-purple-500 hover:to-pink-600 text-white font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-lg shadow-purple-500/20">
-              <i data-lucide="sparkles" class="w-4 h-4"></i> Run Full Audit
-            </button>
-          </div>
-
-          <!-- Ask Custom Question Bar -->
-          <div class="flex gap-3 mb-6">
-            <input type="text" id="aiCustomQuery" placeholder="Ask AI a specific question about your finances (e.g. How can I cut food costs?)..." class="flex-1 bg-brand-darker border border-brand-border rounded-xl px-4 py-3 text-sm text-white font-mono outline-none focus:border-brand-magenta">
-            <button onclick="askAiCustomQuery()" class="bg-brand-card border border-brand-magenta hover:bg-brand-magenta/20 text-brand-magenta font-mono font-bold px-5 py-3 rounded-xl text-sm transition-all flex items-center gap-2">
-              <i data-lucide="send" class="w-4 h-4"></i> Ask
-            </button>
-          </div>
-
-          <!-- AI Report Result Box -->
-          <div id="aiResultBox" class="bg-brand-darker/80 border border-brand-border rounded-xl p-6 font-mono text-sm leading-relaxed text-slate-200 whitespace-pre-wrap min-h-[250px]">
-            <div class="text-slate-500 text-center flex flex-col items-center justify-center py-12">
-              <i data-lucide="cpu" class="w-10 h-10 mb-3 opacity-30"></i>
-              <span>Click "Run Full Audit" or ask a question to analyze your month's finances.</span>
+            <div class="flex flex-wrap gap-1.5" id="quickCategoryPills">
+              <!-- Injected via JS -->
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- ============================================== -->
-      <!-- TAB: EXPORT REPORTS -->
-      <!-- ============================================== -->
-      <section id="tab-reports" class="tab-content hidden space-y-4">
-        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
-          <h3 class="font-bold text-xl text-white mb-1">Export Financial Statements</h3>
-          <p class="text-xs text-slate-400 font-mono mb-6">Download pixel-perfect printable A4 PDF statements, Markdown reports, or CSV spreadsheets</p>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-brand-darker border border-brand-border rounded-2xl p-6 flex flex-col justify-between">
-              <div>
-                <div class="h-12 w-12 rounded-xl bg-red-950/80 border border-red-500/30 flex items-center justify-center text-red-400 mb-4">
-                  <i data-lucide="file-pdf" class="w-6 h-6"></i>
-                </div>
-                <h4 class="font-bold text-lg text-white mb-2">Printable A4 PDF</h4>
-                <p class="text-xs text-slate-400 font-mono mb-4">Cleanly styled statement with summary cards, category percentages, and full transaction tables.</p>
-              </div>
-              <button onclick="downloadReport('pdf')" class="w-full bg-red-500 hover:bg-red-400 text-black font-bold py-2.5 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all">
-                <i data-lucide="download" class="w-4 h-4"></i> Download PDF
-              </button>
+        <!-- Right Panel: Visualizer Canvas (8 Cols - Matching code window in screenshot) -->
+        <div class="lg:col-span-8 bg-dark-card border border-dark-border rounded-xl p-5 flex flex-col">
+          <!-- Terminal/Window Top Bar (Red, Yellow, Green dots from screenshot) -->
+          <div class="flex items-center justify-between pb-3 mb-4 border-b border-dark-border/60">
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+              <span class="text-[11px] font-mono text-dark-muted ml-2">spending_timeline_curve.tensor</span>
             </div>
-
-            <div class="bg-brand-darker border border-brand-border rounded-2xl p-6 flex flex-col justify-between">
-              <div>
-                <div class="h-12 w-12 rounded-xl bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center text-brand-cyan mb-4">
-                  <i data-lucide="file-code" class="w-6 h-6"></i>
-                </div>
-                <h4 class="font-bold text-lg text-white mb-2">Markdown Report</h4>
-                <p class="text-xs text-slate-400 font-mono mb-4">Formatted Markdown (`.md`) compatible with Obsidian, Notion, GitHub notes, and personal vaults.</p>
-              </div>
-              <button onclick="downloadReport('markdown')" class="w-full bg-brand-cyan hover:bg-cyan-300 text-black font-bold py-2.5 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all">
-                <i data-lucide="download" class="w-4 h-4"></i> Download Markdown
-              </button>
-            </div>
-
-            <div class="bg-brand-darker border border-brand-border rounded-2xl p-6 flex flex-col justify-between">
-              <div>
-                <div class="h-12 w-12 rounded-xl bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4">
-                  <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
-                </div>
-                <h4 class="font-bold text-lg text-white mb-2">CSV Spreadsheet</h4>
-                <p class="text-xs text-slate-400 font-mono mb-4">Raw comma-separated data formatted for Microsoft Excel, Google Sheets, or Apple Numbers.</p>
-              </div>
-              <button onclick="downloadCsv()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2.5 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all">
-                <i data-lucide="download" class="w-4 h-4"></i> Download CSV
-              </button>
-            </div>
+            <span id="badgePeakDay" class="text-[10px] font-mono text-dark-amber bg-dark-amber/10 border border-dark-amber/20 px-2 py-0.5 rounded">Peak: -</span>
           </div>
-        </div>
-      </section>
 
-      <!-- ============================================== -->
-      <!-- TAB: SETTINGS & CONFIG -->
-      <!-- ============================================== -->
-      <section id="tab-settings" class="tab-content hidden space-y-6">
-        <!-- Categories Manager -->
-        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
-          <h3 class="font-bold text-lg text-white mb-1">Manage Categories</h3>
-          <p class="text-xs text-slate-400 font-mono mb-4">Custom tags for categorizing your spending</p>
-          <div class="flex gap-3 mb-4">
-            <input type="text" id="newCategoryInput" placeholder="New Category (e.g. ✈️ Travel, 🎮 Gaming)..." class="bg-brand-darker border border-brand-border rounded-lg px-3 py-2 text-sm text-white font-mono flex-1 outline-none focus:border-brand-cyan">
-            <button onclick="addNewCategory()" class="bg-brand-cyan text-black font-bold px-4 py-2 rounded-lg text-sm font-mono">Add Category</button>
-          </div>
-          <div id="categoryTagsContainer" class="flex flex-wrap gap-2">
-            <!-- Tags injected via JS -->
+          <!-- Line Chart Canvas -->
+          <div class="h-64 w-full">
+            <canvas id="chartDailyCurve"></canvas>
           </div>
         </div>
 
-        <!-- AI Engine Configuration -->
-        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
-          <h3 class="font-bold text-lg text-white mb-1">AI Advisor Engine Settings</h3>
-          <p class="text-xs text-slate-400 font-mono mb-4">Configure local Ollama offline endpoint or Google Gemini API</p>
+      </div>
+
+      <!-- Bottom Trajectory History (12 Months) -->
+      <div class="bg-dark-card border border-dark-border rounded-xl p-5">
+        <div class="flex items-center justify-between pb-3 mb-3 border-b border-dark-border/60">
+          <div class="text-[11px] font-mono font-bold text-dark-muted uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-dark-amber"></i> Month-over-Month History
+          </div>
+          <span class="text-[10px] font-mono text-dark-muted">Past 12 Months</span>
+        </div>
+        <div class="h-44 w-full">
+          <canvas id="chartMonthlyHistory"></canvas>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB: TRANSACTIONS -->
+    <!-- ============================================== -->
+    <section id="tab-transactions" class="tab-content hidden space-y-4">
+      <div class="bg-dark-card border border-dark-border rounded-xl p-5">
+        
+        <!-- Header Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-dark-border/60">
+          <div>
+            <h3 class="font-bold text-base text-white">Itemized Transaction Log</h3>
+            <p class="text-[11px] text-dark-muted font-mono">Real-time ledger synced with ~/.spend_tracker.db</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="txSearchInput" placeholder="Search note, category..." class="bg-dark-input border border-dark-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 font-mono outline-none focus:border-dark-amber w-48" onkeyup="filterTransactions()">
+            <select id="txCategoryFilter" class="bg-dark-input border border-dark-border rounded-lg px-3 py-1.5 text-xs text-white font-mono outline-none focus:border-dark-amber cursor-pointer" onchange="filterTransactions()">
+              <option value="All">All Categories</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left font-mono text-xs">
+            <thead class="bg-dark-bg/60 text-dark-muted border-b border-dark-border">
+              <tr>
+                <th class="p-2.5 text-center w-14">ID</th>
+                <th class="p-2.5">DATE</th>
+                <th class="p-2.5">CATEGORY</th>
+                <th class="p-2.5">DESCRIPTION</th>
+                <th class="p-2.5">METHOD</th>
+                <th class="p-2.5 text-right">AMOUNT</th>
+                <th class="p-2.5 text-center w-16">ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="txTableBody" class="divide-y divide-dark-border/40">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB: LENDING & KHATA -->
+    <!-- ============================================== -->
+    <section id="tab-loans" class="tab-content hidden space-y-4">
+      <div class="bg-dark-card border border-dark-border rounded-xl p-5">
+        
+        <div class="flex items-center justify-between pb-4 mb-4 border-b border-dark-border/60">
+          <div>
+            <h3 class="font-bold text-base text-white flex items-center gap-2">
+              <i data-lucide="hand-coins" class="w-4 h-4 text-emerald-400"></i> Lending & Debts Ledger
+            </h3>
+            <p class="text-[11px] text-dark-muted font-mono">Track money lent to peers and money borrowed</p>
+          </div>
+          <button onclick="openModal('modalAddLoan')" class="bg-dark-amber hover:bg-dark-amberLight text-black font-semibold px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> New Loan / Debt
+          </button>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left font-mono text-xs">
+            <thead class="bg-dark-bg/60 text-dark-muted border-b border-dark-border">
+              <tr>
+                <th class="p-2.5 text-center w-12">ID</th>
+                <th class="p-2.5">TYPE</th>
+                <th class="p-2.5">PERSON</th>
+                <th class="p-2.5 text-right">PRINCIPAL</th>
+                <th class="p-2.5 text-right">SETTLED</th>
+                <th class="p-2.5 text-right">REMAINING</th>
+                <th class="p-2.5">DUE DATE</th>
+                <th class="p-2.5 text-center">STATUS</th>
+                <th class="p-2.5">NOTES</th>
+                <th class="p-2.5 text-center">ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="loansTableBody" class="divide-y divide-dark-border/40">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB: AI ADVISOR -->
+    <!-- ============================================== -->
+    <section id="tab-ai" class="tab-content hidden space-y-4">
+      <div class="bg-dark-card border border-dark-border rounded-xl p-5">
+        
+        <div class="flex items-center justify-between pb-4 mb-4 border-b border-dark-border/60">
+          <div>
+            <h3 class="font-bold text-base text-white flex items-center gap-2">
+              <i data-lucide="bot" class="w-4 h-4 text-dark-amber"></i> SPEND AI Financial Advisor
+            </h3>
+            <p class="text-[11px] text-dark-muted font-mono">Automated cost-reduction audits via Local Ollama / Google Gemini</p>
+          </div>
+          <button onclick="runFullAiAudit()" id="btnAiAudit" class="bg-dark-amber hover:bg-dark-amberLight text-black font-semibold px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Run Full Audit
+          </button>
+        </div>
+
+        <!-- Ask Custom Query -->
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="aiCustomQuery" placeholder="Ask AI a specific question about your expenses..." class="flex-1 bg-dark-input border border-dark-border rounded-lg px-3.5 py-2 text-xs text-white font-mono outline-none focus:border-dark-amber">
+          <button onclick="askAiCustomQuery()" class="bg-dark-card border border-dark-amber text-dark-amber hover:bg-dark-amber/10 font-mono font-semibold px-4 py-2 rounded-lg text-xs transition-all flex items-center gap-1.5">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i> Ask
+          </button>
+        </div>
+
+        <!-- AI Output Window -->
+        <div id="aiResultBox" class="bg-dark-bg border border-dark-border rounded-lg p-5 font-mono text-xs leading-relaxed text-slate-300 whitespace-pre-wrap min-h-[220px]">
+          <div class="text-dark-muted text-center flex flex-col items-center justify-center py-10">
+            <i data-lucide="cpu" class="w-8 h-8 mb-2 opacity-30"></i>
+            <span>Click "Run Full Audit" or ask a question to analyze your month's finances.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB: EXPORT REPORTS -->
+    <!-- ============================================== -->
+    <section id="tab-reports" class="tab-content hidden space-y-4">
+      <div class="bg-dark-card border border-dark-border rounded-xl p-5">
+        <h3 class="font-bold text-base text-white mb-1">Export Financial Statements</h3>
+        <p class="text-[11px] text-dark-muted font-mono mb-5">Download statements in printable PDF, Markdown, or CSV spreadsheet format</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           
-          <div class="space-y-4 max-w-xl font-mono text-xs">
+          <div class="bg-dark-bg border border-dark-border rounded-xl p-4 flex flex-col justify-between">
             <div>
-              <label class="block text-slate-400 mb-1">Active AI Provider:</label>
-              <select id="aiProviderSelect" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none focus:border-brand-cyan" onchange="toggleAiInputs()">
-                <option value="ollama">🦙 Local Offline (Ollama - Free & 100% Private)</option>
-                <option value="gemini">🔷 Google Gemini API (High-speed Cloud)</option>
+              <div class="text-dark-amber mb-2"><i data-lucide="file-pdf" class="w-5 h-5"></i></div>
+              <h4 class="font-bold text-sm text-white mb-1">Printable A4 PDF</h4>
+              <p class="text-[11px] text-dark-muted font-mono mb-4">Formatted statement with summary statistics, category breakdown & transaction tables.</p>
+            </div>
+            <button onclick="downloadReport('pdf')" class="w-full bg-dark-card hover:bg-dark-border border border-dark-border text-white font-medium py-2 rounded-lg text-xs font-mono flex items-center justify-center gap-1.5 transition-all">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Download PDF
+            </button>
+          </div>
+
+          <div class="bg-dark-bg border border-dark-border rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div class="text-sky-400 mb-2"><i data-lucide="file-code" class="w-5 h-5"></i></div>
+              <h4 class="font-bold text-sm text-white mb-1">Markdown Report</h4>
+              <p class="text-[11px] text-dark-muted font-mono mb-4">Formatted `.md` for Obsidian, Notion, or personal digital vaults.</p>
+            </div>
+            <button onclick="downloadReport('markdown')" class="w-full bg-dark-card hover:bg-dark-border border border-dark-border text-white font-medium py-2 rounded-lg text-xs font-mono flex items-center justify-center gap-1.5 transition-all">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Markdown
+            </button>
+          </div>
+
+          <div class="bg-dark-bg border border-dark-border rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div class="text-emerald-400 mb-2"><i data-lucide="file-spreadsheet" class="w-5 h-5"></i></div>
+              <h4 class="font-bold text-sm text-white mb-1">CSV Spreadsheet</h4>
+              <p class="text-[11px] text-dark-muted font-mono mb-4">Raw comma-separated table for Excel, Google Sheets, or Apple Numbers.</p>
+            </div>
+            <button onclick="downloadCsv()" class="w-full bg-dark-card hover:bg-dark-border border border-dark-border text-white font-medium py-2 rounded-lg text-xs font-mono flex items-center justify-center gap-1.5 transition-all">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Download CSV
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- TAB: SETTINGS & CONFIG -->
+    <!-- ============================================== -->
+    <section id="tab-settings" class="tab-content hidden space-y-4">
+      
+      <!-- Category Manager -->
+      <div class="bg-dark-card border border-dark-border rounded-xl p-5">
+        <h3 class="font-bold text-sm text-white mb-1">Spending Categories</h3>
+        <p class="text-[11px] text-dark-muted font-mono mb-3">Custom tags for categorizing transactions</p>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="newCategoryInput" placeholder="New Category (e.g. ✈️ Travel)..." class="bg-dark-input border border-dark-border rounded-lg px-3 py-1.5 text-xs text-white font-mono flex-1 outline-none focus:border-dark-amber">
+          <button onclick="addNewCategory()" class="bg-dark-amber hover:bg-dark-amberLight text-black font-semibold px-3 py-1.5 rounded-lg text-xs font-mono">Add Tag</button>
+        </div>
+        <div id="categoryTagsContainer" class="flex flex-wrap gap-1.5">
+          <!-- Injected via JS -->
+        </div>
+      </div>
+
+      <!-- AI Provider Setup -->
+      <div class="bg-dark-card border border-dark-border rounded-xl p-5">
+        <h3 class="font-bold text-sm text-white mb-1">AI Advisor Engine</h3>
+        <p class="text-[11px] text-dark-muted font-mono mb-3">Choose between offline Local Ollama and Cloud Google Gemini</p>
+        
+        <div class="space-y-3 max-w-md font-mono text-xs">
+          <div>
+            <label class="block text-dark-muted mb-1">Provider:</label>
+            <select id="aiProviderSelect" class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none focus:border-dark-amber" onchange="toggleAiInputs()">
+              <option value="ollama">🦙 Local Offline (Ollama - Free & 100% Private)</option>
+              <option value="gemini">🔷 Google Gemini API (High-speed Cloud)</option>
+            </select>
+          </div>
+
+          <div id="boxOllamaConfig" class="space-y-2.5">
+            <div>
+              <label class="block text-dark-muted mb-1">Ollama Host URL:</label>
+              <input type="text" id="cfgOllamaHost" value="http://localhost:11434" class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
+            </div>
+            <div>
+              <label class="block text-dark-muted mb-1">Model Name:</label>
+              <input type="text" id="cfgOllamaModel" value="llama3.2:3b" class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
+            </div>
+          </div>
+
+          <div id="boxGeminiConfig" class="space-y-2.5 hidden">
+            <div>
+              <label class="block text-dark-muted mb-1">Gemini API Key:</label>
+              <input type="password" id="cfgGeminiKey" placeholder="AIzaSy..." class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
+            </div>
+            <div>
+              <label class="block text-dark-muted mb-1">Model:</label>
+              <select id="cfgGeminiModel" class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
+                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                <option value="gemini-1.5-pro">gemini-1.5-pro</option>
               </select>
             </div>
-
-            <div id="boxOllamaConfig" class="space-y-3">
-              <div>
-                <label class="block text-slate-400 mb-1">Ollama Host URL:</label>
-                <input type="text" id="cfgOllamaHost" value="http://localhost:11434" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
-              </div>
-              <div>
-                <label class="block text-slate-400 mb-1">Model Name:</label>
-                <input type="text" id="cfgOllamaModel" value="llama3.2:3b" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
-              </div>
-            </div>
-
-            <div id="boxGeminiConfig" class="space-y-3 hidden">
-              <div>
-                <label class="block text-slate-400 mb-1">Google Gemini API Key:</label>
-                <input type="password" id="cfgGeminiKey" placeholder="AIzaSy..." class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
-              </div>
-              <div>
-                <label class="block text-slate-400 mb-1">Gemini Model:</label>
-                <select id="cfgGeminiModel" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
-                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                  <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro</option>
-                </select>
-              </div>
-            </div>
-
-            <button onclick="saveAiSettings()" class="bg-brand-green text-black font-bold px-4 py-2.5 rounded-lg text-xs font-mono">Save AI Configuration</button>
           </div>
-        </div>
-      </section>
 
-    </main>
-  </div>
+          <button onclick="saveAiSettings()" class="bg-dark-amber text-black font-bold px-3.5 py-1.5 rounded-lg text-xs font-mono">Save AI Settings</button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- FOOTER (Matching Minimalist Screenshot Footer) -->
+  <footer class="w-full max-w-6xl mx-auto px-6 py-6 border-t border-dark-border/40 text-center text-[11px] font-mono text-dark-muted">
+    SPEND • Powered by <span class="text-dark-amber font-semibold">SQLite & FastAPI</span> • Local & Private
+  </footer>
 
   <!-- MODALS -->
 
   <!-- Modal: Add Expense -->
   <div id="modalAddExpense" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-brand-card border border-brand-border rounded-2xl w-full max-w-md p-6 font-mono relative neon-border-cyan">
-      <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-        <i data-lucide="plus-circle" class="w-5 h-5 text-brand-cyan"></i> Record New Expense
+    <div class="bg-dark-card border border-dark-border rounded-xl w-full max-w-sm p-5 font-mono relative shadow-2xl">
+      <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+        <i data-lucide="plus-circle" class="w-4 h-4 text-dark-amber"></i> Record Expense
       </h3>
-      <div class="space-y-3 text-xs">
+      <div class="space-y-2.5 text-xs">
         <div>
-          <label class="block text-slate-400 mb-1">Amount (₹):</label>
-          <input type="number" step="0.01" id="inputExpAmount" placeholder="e.g. 250" class="w-full bg-brand-darker border border-brand-border rounded-lg p-3 text-base text-brand-cyan font-bold outline-none focus:border-brand-cyan">
+          <label class="block text-dark-muted mb-1">Amount (₹):</label>
+          <input type="number" step="0.01" id="inputExpAmount" placeholder="e.g. 250" class="w-full bg-dark-input border border-dark-border rounded-lg p-2.5 text-base text-dark-amber font-bold outline-none focus:border-dark-amber">
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Category:</label>
-          <select id="inputExpCategory" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none"></select>
+          <label class="block text-dark-muted mb-1">Category:</label>
+          <select id="inputExpCategory" class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none"></select>
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Description / Note:</label>
-          <input type="text" id="inputExpDesc" placeholder="e.g. Lunch with team, Groceries..." class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+          <label class="block text-dark-muted mb-1">Description / Note:</label>
+          <input type="text" id="inputExpDesc" placeholder="e.g. Lunch with team..." class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Date:</label>
-          <input type="date" id="inputExpDate" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+          <label class="block text-dark-muted mb-1">Date:</label>
+          <input type="date" id="inputExpDate" class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Payment Method:</label>
-          <select id="inputExpMethod" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+          <label class="block text-dark-muted mb-1">Payment Method:</label>
+          <select id="inputExpMethod" class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
             <option value="📱 UPI / GPay / PhonePe">📱 UPI / GPay / PhonePe</option>
             <option value="💳 Credit/Debit Card">💳 Credit/Debit Card</option>
             <option value="💵 Cash">💵 Cash</option>
@@ -490,66 +502,66 @@
           </select>
         </div>
       </div>
-      <div class="flex justify-end gap-3 mt-6">
-        <button onclick="closeModal('modalAddExpense')" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-xs">Cancel</button>
-        <button onclick="submitExpense()" class="bg-brand-cyan hover:bg-cyan-400 text-black font-bold px-5 py-2 rounded-lg text-xs">Save Expense</button>
+      <div class="flex justify-end gap-2 mt-5">
+        <button onclick="closeModal('modalAddExpense')" class="px-3 py-1.5 rounded-lg text-dark-muted hover:text-white text-xs">Cancel</button>
+        <button onclick="submitExpense()" class="bg-dark-amber hover:bg-dark-amberLight text-black font-semibold px-4 py-1.5 rounded-lg text-xs">Save Expense</button>
       </div>
     </div>
   </div>
 
   <!-- Modal: Set Monthly Budget -->
   <div id="modalSetBudget" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-brand-card border border-brand-border rounded-2xl w-full max-w-sm p-6 font-mono relative">
-      <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-        <i data-lucide="target" class="w-5 h-5 text-brand-yellow"></i> Set Monthly Budget
+    <div class="bg-dark-card border border-dark-border rounded-xl w-full max-w-xs p-5 font-mono relative shadow-2xl">
+      <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+        <i data-lucide="target" class="w-4 h-4 text-dark-amber"></i> Monthly Budget
       </h3>
-      <div class="space-y-3 text-xs">
+      <div class="space-y-2.5 text-xs">
         <div>
-          <label class="block text-slate-400 mb-1">Monthly Budget Limit (₹):</label>
-          <input type="number" step="1" id="inputBudgetAmount" placeholder="e.g. 30000" class="w-full bg-brand-darker border border-brand-border rounded-lg p-3 text-base text-brand-yellow font-bold outline-none focus:border-brand-yellow">
+          <label class="block text-dark-muted mb-1">Limit Target (₹):</label>
+          <input type="number" step="1" id="inputBudgetAmount" placeholder="e.g. 35000" class="w-full bg-dark-input border border-dark-border rounded-lg p-2.5 text-sm text-dark-amber font-bold outline-none focus:border-dark-amber">
         </div>
       </div>
-      <div class="flex justify-end gap-3 mt-6">
-        <button onclick="closeModal('modalSetBudget')" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-xs">Cancel</button>
-        <button onclick="submitBudget()" class="bg-brand-yellow hover:bg-yellow-400 text-black font-bold px-5 py-2 rounded-lg text-xs">Update Budget</button>
+      <div class="flex justify-end gap-2 mt-5">
+        <button onclick="closeModal('modalSetBudget')" class="px-3 py-1.5 rounded-lg text-dark-muted hover:text-white text-xs">Cancel</button>
+        <button onclick="submitBudget()" class="bg-dark-amber hover:bg-dark-amberLight text-black font-semibold px-4 py-1.5 rounded-lg text-xs">Save</button>
       </div>
     </div>
   </div>
 
   <!-- Modal: Add Loan/Debt -->
   <div id="modalAddLoan" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-brand-card border border-brand-border rounded-2xl w-full max-w-md p-6 font-mono relative">
-      <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-        <i data-lucide="hand-coins" class="w-5 h-5 text-brand-green"></i> Record Loan / Debt
+    <div class="bg-dark-card border border-dark-border rounded-xl w-full max-w-sm p-5 font-mono relative shadow-2xl">
+      <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+        <i data-lucide="hand-coins" class="w-4 h-4 text-emerald-400"></i> Record Loan / Debt
       </h3>
-      <div class="space-y-3 text-xs">
+      <div class="space-y-2.5 text-xs">
         <div>
-          <label class="block text-slate-400 mb-1">Transaction Type:</label>
-          <select id="inputLoanType" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+          <label class="block text-dark-muted mb-1">Type:</label>
+          <select id="inputLoanType" class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
             <option value="lent">🟢 Lent Money (Someone owes you)</option>
             <option value="borrowed">🔴 Borrowed Money (You owe someone)</option>
           </select>
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Person Name:</label>
-          <input type="text" id="inputLoanPerson" placeholder="e.g. Rahul, Priya..." class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+          <label class="block text-dark-muted mb-1">Person Name:</label>
+          <input type="text" id="inputLoanPerson" placeholder="e.g. Rahul Sharma..." class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Amount (₹):</label>
-          <input type="number" step="0.01" id="inputLoanAmount" placeholder="e.g. 1500" class="w-full bg-brand-darker border border-brand-border rounded-lg p-3 text-base text-brand-green font-bold outline-none">
+          <label class="block text-dark-muted mb-1">Amount (₹):</label>
+          <input type="number" step="0.01" id="inputLoanAmount" placeholder="e.g. 1500" class="w-full bg-dark-input border border-dark-border rounded-lg p-2.5 text-sm text-emerald-400 font-bold outline-none">
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Due Date (Optional):</label>
-          <input type="date" id="inputLoanDue" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+          <label class="block text-dark-muted mb-1">Due Date (Optional):</label>
+          <input type="date" id="inputLoanDue" class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
         </div>
         <div>
-          <label class="block text-slate-400 mb-1">Notes / Reason:</label>
-          <input type="text" id="inputLoanNotes" placeholder="e.g. Trip hotel advance split..." class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+          <label class="block text-dark-muted mb-1">Notes / Reason:</label>
+          <input type="text" id="inputLoanNotes" placeholder="e.g. Split advance..." class="w-full bg-dark-input border border-dark-border rounded-lg p-2 text-white outline-none">
         </div>
       </div>
-      <div class="flex justify-end gap-3 mt-6">
-        <button onclick="closeModal('modalAddLoan')" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-xs">Cancel</button>
-        <button onclick="submitLoan()" class="bg-brand-green hover:bg-emerald-400 text-black font-bold px-5 py-2 rounded-lg text-xs">Save Loan</button>
+      <div class="flex justify-end gap-2 mt-5">
+        <button onclick="closeModal('modalAddLoan')" class="px-3 py-1.5 rounded-lg text-dark-muted hover:text-white text-xs">Cancel</button>
+        <button onclick="submitLoan()" class="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-4 py-1.5 rounded-lg text-xs">Save</button>
       </div>
     </div>
   </div>
@@ -582,16 +594,16 @@
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.nav-btn').forEach(el => {
-        el.classList.remove('border', 'border-brand-cyan/40', 'bg-brand-cyan/10', 'text-brand-cyan');
-        el.classList.add('text-slate-400');
+      document.querySelectorAll('.nav-pill').forEach(el => {
+        el.classList.remove('border-dark-amber/40', 'text-dark-amber', 'bg-dark-card');
+        el.classList.add('border-dark-border', 'text-dark-muted', 'bg-dark-card/60');
       });
 
       document.getElementById(`tab-${tabId}`).classList.remove('hidden');
       const activeBtn = document.getElementById(`nav-${tabId}`);
       if (activeBtn) {
-        activeBtn.classList.remove('text-slate-400');
-        activeBtn.classList.add('border', 'border-brand-cyan/40', 'bg-brand-cyan/10', 'text-brand-cyan');
+        activeBtn.classList.remove('border-dark-border', 'text-dark-muted', 'bg-dark-card/60');
+        activeBtn.classList.add('border-dark-amber/40', 'text-dark-amber', 'bg-dark-card');
       }
 
       if (tabId === 'dashboard') loadDashboard();
@@ -631,9 +643,9 @@
           const rem = s.budget - s.total_amount;
           const pct = (s.total_amount / s.budget) * 100;
           if (rem >= 0) {
-            document.getElementById('statBudgetStatus').innerHTML = `<span class="text-brand-green font-bold">₹${rem.toLocaleString('en-IN')} remaining</span> (${pct.toFixed(1)}% used)`;
+            document.getElementById('statBudgetStatus').innerHTML = `<span class="text-emerald-400 font-semibold">₹${rem.toLocaleString('en-IN')} left</span> (${pct.toFixed(1)}%)`;
           } else {
-            document.getElementById('statBudgetStatus').innerHTML = `<span class="text-red-400 font-bold">₹${Math.abs(rem).toLocaleString('en-IN')} OVER BUDGET</span> (${pct.toFixed(1)}% used)`;
+            document.getElementById('statBudgetStatus').innerHTML = `<span class="text-rose-400 font-semibold">₹${Math.abs(rem).toLocaleString('en-IN')} OVER</span> (${pct.toFixed(1)}%)`;
           }
         } else {
           document.getElementById('statBudgetLimit').innerText = 'Not Set';
@@ -644,7 +656,7 @@
         document.getElementById('statBorrowed').innerText = `₹${ls.borrowed_pending.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         document.getElementById('statNetKhata').innerText = `Net Balance: ₹${ls.net_balance.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
 
-        // Render Charts
+        // Render Clean Charts
         renderDailyChart(dailyRes);
         renderDonutChart(s.by_category);
         renderMonthlyHistoryChart(monthlyRes);
@@ -675,14 +687,16 @@
           datasets: [{
             label: 'Spent (₹)',
             data: values.length ? values : [0],
-            borderColor: '#00e5ff',
-            backgroundColor: 'rgba(0, 229, 255, 0.1)',
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.08)',
             fill: true,
             tension: 0.35,
-            pointBackgroundColor: '#ff79c6',
+            pointBackgroundColor: '#f59e0b',
+            pointBorderColor: '#0c1017',
+            pointBorderWidth: 2,
             pointRadius: 4,
             pointHoverRadius: 6,
-            borderWidth: 2.5
+            borderWidth: 2
           }]
         },
         options: {
@@ -691,6 +705,13 @@
           plugins: {
             legend: { display: false },
             tooltip: {
+              backgroundColor: '#121824',
+              titleColor: '#f1f5f9',
+              bodyColor: '#f59e0b',
+              borderColor: '#1e293b',
+              borderWidth: 1,
+              titleFont: { family: 'JetBrains Mono' },
+              bodyFont: { family: 'JetBrains Mono' },
               callbacks: {
                 label: (c) => ` ₹${c.parsed.y.toLocaleString('en-IN')}`
               }
@@ -698,14 +719,14 @@
           },
           scales: {
             x: {
-              grid: { color: '#1f293d' },
-              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } }
+              grid: { color: '#161e2e' },
+              ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
             },
             y: {
-              grid: { color: '#1f293d' },
+              grid: { color: '#161e2e' },
               ticks: {
-                color: '#94a3b8',
-                font: { family: 'JetBrains Mono' },
+                color: '#64748b',
+                font: { family: 'JetBrains Mono', size: 10 },
                 callback: (v) => '₹' + v.toLocaleString('en-IN')
               }
             }
@@ -720,7 +741,7 @@
 
       const labels = (catData && catData.length) ? catData.map(c => c.category) : ['No Expenses'];
       const values = (catData && catData.length) ? catData.map(c => c.total) : [1];
-      const colors = ['#00e5ff', '#ff79c6', '#bd93f9', '#50fa7b', '#f1fa8c', '#ffb86c', '#ff5555', '#8be9fd', '#3a86ff'];
+      const colors = ['#f59e0b', '#38bdf8', '#a855f7', '#34d399', '#fb7185', '#fbbf24', '#818cf8', '#64748b'];
 
       donutChart = new Chart(ctx, {
         type: 'doughnut',
@@ -728,8 +749,9 @@
           labels: labels,
           datasets: [{
             data: values,
-            backgroundColor: (catData && catData.length) ? colors.slice(0, catData.length) : ['#1f293d'],
-            borderWidth: 0
+            backgroundColor: (catData && catData.length) ? colors.slice(0, catData.length) : ['#1e293b'],
+            borderWidth: 2,
+            borderColor: '#121824'
           }]
         },
         options: {
@@ -738,10 +760,10 @@
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { color: '#cbd5e1', font: { family: 'JetBrains Mono', size: 10 }, boxWidth: 10 }
+              labels: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 9 }, boxWidth: 8, padding: 8 }
             }
           },
-          cutout: '70%'
+          cutout: '72%'
         }
       });
     }
@@ -760,10 +782,10 @@
           datasets: [{
             label: 'Monthly Total (₹)',
             data: values,
-            backgroundColor: 'rgba(181, 23, 158, 0.7)',
-            borderColor: '#b5179e',
-            borderWidth: 1.5,
-            borderRadius: 6
+            backgroundColor: 'rgba(245, 158, 11, 0.45)',
+            borderColor: '#f59e0b',
+            borderWidth: 1,
+            borderRadius: 4
           }]
         },
         options: {
@@ -772,6 +794,13 @@
           plugins: {
             legend: { display: false },
             tooltip: {
+              backgroundColor: '#121824',
+              titleColor: '#f1f5f9',
+              bodyColor: '#f59e0b',
+              borderColor: '#1e293b',
+              borderWidth: 1,
+              titleFont: { family: 'JetBrains Mono' },
+              bodyFont: { family: 'JetBrains Mono' },
               callbacks: {
                 label: (c) => ` ₹${c.parsed.y.toLocaleString('en-IN')}`
               }
@@ -780,13 +809,13 @@
           scales: {
             x: {
               grid: { display: false },
-              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } }
+              ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
             },
             y: {
-              grid: { color: '#1f293d' },
+              grid: { color: '#161e2e' },
               ticks: {
-                color: '#94a3b8',
-                font: { family: 'JetBrains Mono' },
+                color: '#64748b',
+                font: { family: 'JetBrains Mono', size: 10 },
                 callback: (v) => '₹' + v.toLocaleString('en-IN')
               }
             }
@@ -817,20 +846,20 @@
     function renderTransactionsTable(list) {
       const tbody = document.getElementById('txTableBody');
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No transactions recorded this month.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-dark-muted font-mono">No transactions recorded for this period.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = list.map(e => `
-        <tr class="hover:bg-brand-card/50 transition-colors">
-          <td class="p-3 text-center text-slate-500">#${e.id}</td>
-          <td class="p-3 text-slate-300 font-bold">${e.date}</td>
-          <td class="p-3 text-brand-pink font-semibold">${e.category}</td>
-          <td class="p-3 text-slate-300">${e.description || '-'}</td>
-          <td class="p-3 text-brand-yellow text-xs">${e.payment_method}</td>
-          <td class="p-3 text-right font-bold text-brand-green text-sm">₹${e.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-          <td class="p-3 text-center">
-            <button onclick="deleteExpenseItem(${e.id})" class="text-slate-500 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        <tr class="hover:bg-dark-bg/40 transition-colors">
+          <td class="p-2.5 text-center text-dark-muted">#${e.id}</td>
+          <td class="p-2.5 text-slate-300 font-semibold">${e.date}</td>
+          <td class="p-2.5 text-dark-amber font-medium">${e.category}</td>
+          <td class="p-2.5 text-slate-300">${e.description || '-'}</td>
+          <td class="p-2.5 text-dark-muted text-[11px]">${e.payment_method}</td>
+          <td class="p-2.5 text-right font-bold text-white text-xs">₹${e.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+          <td class="p-2.5 text-center">
+            <button onclick="deleteExpenseItem(${e.id})" class="text-dark-muted hover:text-rose-400 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
           </td>
         </tr>
       `).join('');
@@ -875,7 +904,7 @@
       const tbody = document.getElementById('loansTableBody');
 
       if (!loans || loans.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-500">No active loans or debt records.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-dark-muted font-mono">No active loans or debt records.</td></tr>`;
         return;
       }
 
@@ -883,27 +912,27 @@
         const rem = Math.max(0, l.amount - (l.settled_amount || 0));
         const isLent = l.type === 'lent';
         const typeBadge = isLent 
-          ? `<span class="bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold">LENT</span>` 
-          : `<span class="bg-red-950 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[10px] font-bold">BORROWED</span>`;
+          ? `<span class="bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded text-[10px] font-bold">LENT</span>` 
+          : `<span class="bg-rose-950/60 text-rose-400 border border-rose-500/30 px-1.5 py-0.5 rounded text-[10px] font-bold">BORROWED</span>`;
         
         const statusBadge = l.status === 'settled'
-          ? `<span class="text-brand-green font-bold">SETTLED</span>`
-          : (l.status === 'partial' ? `<span class="text-brand-yellow font-bold">PARTIAL</span>` : `<span class="text-red-400 font-bold">PENDING</span>`);
+          ? `<span class="text-emerald-400 font-semibold">SETTLED</span>`
+          : (l.status === 'partial' ? `<span class="text-dark-amber font-semibold">PARTIAL</span>` : `<span class="text-rose-400 font-semibold">PENDING</span>`);
 
         return `
-          <tr class="hover:bg-brand-card/50 transition-colors">
-            <td class="p-3 text-center text-slate-500">#${l.id}</td>
-            <td class="p-3 text-center">${typeBadge}</td>
-            <td class="p-3 font-bold text-white">${l.person}</td>
-            <td class="p-3 text-right text-brand-yellow">₹${l.amount.toLocaleString('en-IN')}</td>
-            <td class="p-3 text-right text-brand-green">₹${(l.settled_amount || 0).toLocaleString('en-IN')}</td>
-            <td class="p-3 text-right font-bold ${isLent ? 'text-brand-cyan' : 'text-red-400'}">₹${rem.toLocaleString('en-IN')}</td>
-            <td class="p-3 text-slate-400">${l.due_date || '-'}</td>
-            <td class="p-3 text-center text-[11px]">${statusBadge}</td>
-            <td class="p-3 text-slate-400">${l.notes || '-'}</td>
-            <td class="p-3 text-center">
-              ${l.status !== 'settled' ? `<button onclick="settleLoanPrompt(${l.id}, ${rem})" class="bg-emerald-500 hover:bg-emerald-400 text-black px-2 py-1 rounded text-[11px] font-bold mr-1">Settle</button>` : ''}
-              <button onclick="deleteLoanItem(${l.id})" class="text-slate-500 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+          <tr class="hover:bg-dark-bg/40 transition-colors">
+            <td class="p-2.5 text-center text-dark-muted">#${l.id}</td>
+            <td class="p-2.5 text-center">${typeBadge}</td>
+            <td class="p-2.5 font-bold text-white">${l.person}</td>
+            <td class="p-2.5 text-right text-slate-300">₹${l.amount.toLocaleString('en-IN')}</td>
+            <td class="p-2.5 text-right text-emerald-400">₹${(l.settled_amount || 0).toLocaleString('en-IN')}</td>
+            <td class="p-2.5 text-right font-bold ${isLent ? 'text-dark-amber' : 'text-rose-400'}">₹${rem.toLocaleString('en-IN')}</td>
+            <td class="p-2.5 text-dark-muted">${l.due_date || '-'}</td>
+            <td class="p-2.5 text-center text-[11px]">${statusBadge}</td>
+            <td class="p-2.5 text-dark-muted">${l.notes || '-'}</td>
+            <td class="p-2.5 text-center">
+              ${l.status !== 'settled' ? `<button onclick="settleLoanPrompt(${l.id}, ${rem})" class="bg-dark-amber hover:bg-dark-amberLight text-black px-2 py-0.5 rounded text-[10px] font-bold mr-1">Settle</button>` : ''}
+              <button onclick="deleteLoanItem(${l.id})" class="text-dark-muted hover:text-rose-400 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
             </td>
           </tr>
         `;
@@ -959,13 +988,25 @@
       const selectExp = document.getElementById('inputExpCategory');
       const selectFilter = document.getElementById('txCategoryFilter');
       const container = document.getElementById('categoryTagsContainer');
+      const pillsContainer = document.getElementById('quickCategoryPills');
 
       selectExp.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
       selectFilter.innerHTML = `<option value="All">All Categories</option>` + cats.map(c => `<option value="${c}">${c}</option>`).join('');
 
       container.innerHTML = cats.map(c => `
-        <span class="bg-brand-darker border border-brand-border text-slate-300 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold">${c}</span>
+        <span class="bg-dark-input border border-dark-border text-slate-300 px-2.5 py-1 rounded text-xs font-mono">${c}</span>
       `).join('');
+
+      if (pillsContainer) {
+        pillsContainer.innerHTML = cats.slice(0, 6).map(c => `
+          <button onclick="quickSelectCategory('${c}')" class="bg-dark-input hover:bg-dark-border border border-dark-border text-dark-muted hover:text-white px-2 py-1 rounded text-[11px] font-mono transition-all">${c}</button>
+        `).join('');
+      }
+    }
+
+    function quickSelectCategory(cat) {
+      document.getElementById('inputExpCategory').value = cat;
+      openModal('modalAddExpense');
     }
 
     async function addNewCategory() {
@@ -1004,7 +1045,7 @@
     async function runFullAiAudit() {
       const month = getSelectedMonth();
       const box = document.getElementById('aiResultBox');
-      box.innerHTML = `<div class="text-brand-cyan flex items-center gap-2"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> SPEND AI is evaluating your ${month} financial data...</div>`;
+      box.innerHTML = `<div class="text-dark-amber flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> SPEND AI is evaluating your ${month} financial data...</div>`;
       lucide.createIcons();
 
       try {
@@ -1016,7 +1057,7 @@
 
         box.innerText = res.report || 'No response returned.';
       } catch (err) {
-        box.innerHTML = `<span class="text-red-400">AI Analysis Error: ${err}</span>`;
+        box.innerHTML = `<span class="text-rose-400">AI Analysis Error: ${err}</span>`;
       }
     }
 
@@ -1025,7 +1066,7 @@
       if (!q) return;
       const month = getSelectedMonth();
       const box = document.getElementById('aiResultBox');
-      box.innerHTML = `<div class="text-brand-magenta flex items-center gap-2"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Answering: "${q}"...</div>`;
+      box.innerHTML = `<div class="text-dark-amber flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Answering: "${q}"...</div>`;
       lucide.createIcons();
 
       try {
@@ -1037,7 +1078,7 @@
 
         box.innerText = res.report || 'No response returned.';
       } catch (err) {
-        box.innerHTML = `<span class="text-red-400">Error: ${err}</span>`;
+        box.innerHTML = `<span class="text-rose-400">Error: ${err}</span>`;
       }
     }
 
