@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Resolves the real target directory even when invoked through a symlink (e.g. ~/.local/bin/spend)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+
+if [ -f "$DIR/.venv/bin/activate" ]; then
+  source "$DIR/.venv/bin/activate"
+fi
+
+python3 "$DIR/spend.py" "$@"
