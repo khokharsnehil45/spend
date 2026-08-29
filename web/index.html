@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPEND — Retro Cyberpunk Financial Manager</title>
+  
+  <!-- Google Fonts & Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,800;1,400&family=Outfit:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons & Chart.js -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              cyan: '#00e5ff',
+              magenta: '#b5179e',
+              purple: '#9d4edd',
+              pink: '#ff79c6',
+              green: '#50fa7b',
+              yellow: '#f1fa8c',
+              dark: '#0b0f19',
+              darker: '#06080e',
+              card: '#111726',
+              border: '#1f293d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #151d30 0%, #06080e 100%);
+      color: #f8f8f2;
+    }
+    .neon-border-cyan {
+      box-shadow: 0 0 15px -3px rgba(0, 229, 255, 0.2);
+    }
+    .neon-border-magenta {
+      box-shadow: 0 0 15px -3px rgba(181, 23, 158, 0.25);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #1f293d;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #00e5ff;
+    }
+    .glass {
+      background: rgba(17, 23, 38, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col selection:bg-brand-cyan selection:text-black">
+
+  <!-- TOP RETRO BANNER -->
+  <header class="border-b border-brand-border glass sticky top-0 z-40 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-lg bg-gradient-to-tr from-brand-cyan to-brand-magenta flex items-center justify-center font-mono font-black text-black text-xl shadow-lg shadow-cyan-500/20">
+        ⚡
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-mono font-black tracking-widest text-2xl bg-gradient-to-r from-brand-cyan via-brand-pink to-brand-magenta bg-clip-text text-transparent">SPEND</span>
+          <span class="text-xs font-mono uppercase bg-cyan-950/80 border border-cyan-500/40 text-brand-cyan px-2 py-0.5 rounded-full font-bold">GUI v1.0</span>
+        </div>
+        <p class="text-xs text-slate-400 font-mono">Personal Expense & Khata Suite</p>
+      </div>
+    </div>
+
+    <!-- Live Month Selector & Quick Stats -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center bg-brand-darker border border-brand-border rounded-lg px-3 py-1.5 font-mono text-sm">
+        <span class="text-slate-400 mr-2 text-xs">MONTH:</span>
+        <input type="month" id="monthPicker" class="bg-transparent text-brand-cyan font-bold outline-none cursor-pointer" onchange="loadDashboard()">
+      </div>
+
+      <button onclick="openModal('modalAddExpense')" class="bg-gradient-to-r from-brand-cyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-all shadow-md shadow-cyan-500/20">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Expense
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <div class="flex-1 flex max-w-[1600px] w-full mx-auto p-6 gap-6">
+
+    <!-- SIDEBAR NAV -->
+    <aside class="w-64 flex flex-col gap-2 shrink-0">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all border border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan font-mono">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Overview & Charts
+      </button>
+      <button onclick="switchTab('transactions')" id="nav-transactions" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
+        <i data-lucide="receipt" class="w-4 h-4"></i> Transactions
+      </button>
+      <button onclick="switchTab('loans')" id="nav-loans" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
+        <i data-lucide="hand-coins" class="w-4 h-4"></i> Lending & Khata
+      </button>
+      <button onclick="switchTab('ai')" id="nav-ai" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
+        <i data-lucide="bot" class="w-4 h-4"></i> SPEND AI Advisor
+      </button>
+      <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
+        <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF / MD
+      </button>
+      <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-400 hover:text-white hover:bg-brand-card font-mono">
+        <i data-lucide="settings" class="w-4 h-4"></i> Categories & AI Key
+      </button>
+
+      <!-- Bottom System Status -->
+      <div class="mt-auto bg-brand-card/70 border border-brand-border rounded-xl p-4 text-xs font-mono">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span>STORAGE</span>
+          <span class="text-brand-green">SQLite Live</span>
+        </div>
+        <div class="text-slate-500 truncate" title="~/.spend_tracker.db">~/.spend_tracker.db</div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 min-w-0 space-y-6">
+
+      <!-- ============================================== -->
+      <!-- TAB: DASHBOARD -->
+      <!-- ============================================== -->
+      <section id="tab-dashboard" class="tab-content space-y-6">
+        <!-- Top Stats Row -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          
+          <div class="bg-brand-card border border-brand-border rounded-2xl p-5 relative overflow-hidden neon-border-cyan">
+            <div class="text-xs font-mono uppercase text-slate-400 mb-1">Total Spending</div>
+            <div id="statTotalSpent" class="text-3xl font-mono font-black text-brand-cyan">₹0.00</div>
+            <div id="statTxnCount" class="text-xs text-slate-400 mt-2 font-mono">0 transactions</div>
+          </div>
+
+          <div class="bg-brand-card border border-brand-border rounded-2xl p-5 relative overflow-hidden">
+            <div class="text-xs font-mono uppercase text-slate-400 mb-1 flex items-center justify-between">
+              <span>Budget Limit</span>
+              <button onclick="openSetBudgetModal()" class="text-brand-cyan hover:underline text-[11px]">Set Goal</button>
+            </div>
+            <div id="statBudgetLimit" class="text-3xl font-mono font-black text-brand-yellow">₹0.00</div>
+            <div id="statBudgetStatus" class="text-xs text-slate-400 mt-2 font-mono">Not configured</div>
+          </div>
+
+          <div class="bg-brand-card border border-brand-border rounded-2xl p-5 relative overflow-hidden">
+            <div class="text-xs font-mono uppercase text-slate-400 mb-1">Money Lent (Owed to You)</div>
+            <div id="statLent" class="text-3xl font-mono font-black text-brand-green">₹0.00</div>
+            <div class="text-xs text-slate-400 mt-2 font-mono">From active Khata loans</div>
+          </div>
+
+          <div class="bg-brand-card border border-brand-border rounded-2xl p-5 relative overflow-hidden">
+            <div class="text-xs font-mono uppercase text-slate-400 mb-1">Debts (You Owe)</div>
+            <div id="statBorrowed" class="text-3xl font-mono font-black text-brand-pink">₹0.00</div>
+            <div id="statNetKhata" class="text-xs text-slate-400 mt-2 font-mono">Net: ₹0.00</div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Daily Trend Line Chart (2 Cols) -->
+          <div class="lg:col-span-2 bg-brand-card border border-brand-border rounded-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                  <i data-lucide="trending-up" class="w-5 h-5 text-brand-cyan"></i> Daily Spending Curve
+                </h3>
+                <p class="text-xs text-slate-400 font-mono">Day-by-day continuous timeline & spikes</p>
+              </div>
+              <span id="badgePeakDay" class="text-xs font-mono bg-cyan-950 text-brand-cyan border border-cyan-500/30 px-2.5 py-1 rounded-full">Peak: -</span>
+            </div>
+            <div class="h-64 w-full">
+              <canvas id="chartDailyCurve"></canvas>
+            </div>
+          </div>
+
+          <!-- Category Donut Distribution -->
+          <div class="bg-brand-card border border-brand-border rounded-2xl p-6 flex flex-col">
+            <h3 class="font-bold text-lg text-white mb-1 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-5 h-5 text-brand-magenta"></i> Category Share
+            </h3>
+            <p class="text-xs text-slate-400 font-mono mb-4">Proportional expense allocation</p>
+            <div class="flex-1 flex items-center justify-center min-h-[220px]">
+              <canvas id="chartCategoryDonut"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Month-over-Month Bar Chart -->
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 text-brand-purple"></i> Month-over-Month Trajectory
+              </h3>
+              <p class="text-xs text-slate-400 font-mono">Past 12 months historical spending comparison</p>
+            </div>
+          </div>
+          <div class="h-56 w-full">
+            <canvas id="chartMonthlyHistory"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB: TRANSACTIONS -->
+      <!-- ============================================== -->
+      <section id="tab-transactions" class="tab-content hidden space-y-4">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 class="font-bold text-xl text-white">Itemized Transactions</h3>
+              <p class="text-xs text-slate-400 font-mono">Browse, filter, search, and manage your logs</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <input type="text" id="txSearchInput" placeholder="Search note, category..." class="bg-brand-darker border border-brand-border rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 font-mono outline-none focus:border-brand-cyan" onkeyup="filterTransactions()">
+              <select id="txCategoryFilter" class="bg-brand-darker border border-brand-border rounded-lg px-3 py-2 text-sm text-white font-mono outline-none focus:border-brand-cyan cursor-pointer" onchange="filterTransactions()">
+                <option value="All">All Categories</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left font-mono text-xs">
+              <thead class="bg-brand-darker text-slate-400 border-b border-brand-border">
+                <tr>
+                  <th class="p-3 text-center w-16">ID</th>
+                  <th class="p-3">DATE</th>
+                  <th class="p-3">CATEGORY</th>
+                  <th class="p-3">DESCRIPTION</th>
+                  <th class="p-3">METHOD</th>
+                  <th class="p-3 text-right">AMOUNT</th>
+                  <th class="p-3 text-center w-20">ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="txTableBody" class="divide-y divide-brand-border/40">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB: LENDING & KHATA -->
+      <!-- ============================================== -->
+      <section id="tab-loans" class="tab-content hidden space-y-4">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h3 class="font-bold text-xl text-white flex items-center gap-2">
+                <i data-lucide="hand-coins" class="w-6 h-6 text-brand-green"></i> Lending & Debts Ledger
+              </h3>
+              <p class="text-xs text-slate-400 font-mono">Track money lent to friends and outstanding debts</p>
+            </div>
+            <button onclick="openModal('modalAddLoan')" class="bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+              <i data-lucide="plus" class="w-4 h-4"></i> New Loan / Debt
+            </button>
+          </div>
+
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left font-mono text-xs">
+              <thead class="bg-brand-darker text-slate-400 border-b border-brand-border">
+                <tr>
+                  <th class="p-3 text-center w-14">ID</th>
+                  <th class="p-3">TYPE</th>
+                  <th class="p-3">PERSON</th>
+                  <th class="p-3 text-right">PRINCIPAL</th>
+                  <th class="p-3 text-right">SETTLED</th>
+                  <th class="p-3 text-right">REMAINING</th>
+                  <th class="p-3">DUE DATE</th>
+                  <th class="p-3 text-center">STATUS</th>
+                  <th class="p-3">NOTES</th>
+                  <th class="p-3 text-center">ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="loansTableBody" class="divide-y divide-brand-border/40">
+                <!-- Injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB: AI ADVISOR -->
+      <!-- ============================================== -->
+      <section id="tab-ai" class="tab-content hidden space-y-4">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h3 class="font-bold text-xl text-white flex items-center gap-2">
+                <i data-lucide="bot" class="w-6 h-6 text-brand-magenta"></i> SPEND AI Financial Advisor
+              </h3>
+              <p class="text-xs text-slate-400 font-mono">Deep spending audits, anomaly detection & cost optimization via Ollama / Gemini</p>
+            </div>
+            <button onclick="runFullAiAudit()" id="btnAiAudit" class="bg-gradient-to-r from-purple-600 to-brand-magenta hover:from-purple-500 hover:to-pink-600 text-white font-bold px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow-lg shadow-purple-500/20">
+              <i data-lucide="sparkles" class="w-4 h-4"></i> Run Full Audit
+            </button>
+          </div>
+
+          <!-- Ask Custom Question Bar -->
+          <div class="flex gap-3 mb-6">
+            <input type="text" id="aiCustomQuery" placeholder="Ask AI a specific question about your finances (e.g. How can I cut food costs?)..." class="flex-1 bg-brand-darker border border-brand-border rounded-xl px-4 py-3 text-sm text-white font-mono outline-none focus:border-brand-magenta">
+            <button onclick="askAiCustomQuery()" class="bg-brand-card border border-brand-magenta hover:bg-brand-magenta/20 text-brand-magenta font-mono font-bold px-5 py-3 rounded-xl text-sm transition-all flex items-center gap-2">
+              <i data-lucide="send" class="w-4 h-4"></i> Ask
+            </button>
+          </div>
+
+          <!-- AI Report Result Box -->
+          <div id="aiResultBox" class="bg-brand-darker/80 border border-brand-border rounded-xl p-6 font-mono text-sm leading-relaxed text-slate-200 whitespace-pre-wrap min-h-[250px]">
+            <div class="text-slate-500 text-center flex flex-col items-center justify-center py-12">
+              <i data-lucide="cpu" class="w-10 h-10 mb-3 opacity-30"></i>
+              <span>Click "Run Full Audit" or ask a question to analyze your month's finances.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB: EXPORT REPORTS -->
+      <!-- ============================================== -->
+      <section id="tab-reports" class="tab-content hidden space-y-4">
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
+          <h3 class="font-bold text-xl text-white mb-1">Export Financial Statements</h3>
+          <p class="text-xs text-slate-400 font-mono mb-6">Download pixel-perfect printable A4 PDF statements, Markdown reports, or CSV spreadsheets</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-brand-darker border border-brand-border rounded-2xl p-6 flex flex-col justify-between">
+              <div>
+                <div class="h-12 w-12 rounded-xl bg-red-950/80 border border-red-500/30 flex items-center justify-center text-red-400 mb-4">
+                  <i data-lucide="file-pdf" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-lg text-white mb-2">Printable A4 PDF</h4>
+                <p class="text-xs text-slate-400 font-mono mb-4">Cleanly styled statement with summary cards, category percentages, and full transaction tables.</p>
+              </div>
+              <button onclick="downloadReport('pdf')" class="w-full bg-red-500 hover:bg-red-400 text-black font-bold py-2.5 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i> Download PDF
+              </button>
+            </div>
+
+            <div class="bg-brand-darker border border-brand-border rounded-2xl p-6 flex flex-col justify-between">
+              <div>
+                <div class="h-12 w-12 rounded-xl bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center text-brand-cyan mb-4">
+                  <i data-lucide="file-code" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-lg text-white mb-2">Markdown Report</h4>
+                <p class="text-xs text-slate-400 font-mono mb-4">Formatted Markdown (`.md`) compatible with Obsidian, Notion, GitHub notes, and personal vaults.</p>
+              </div>
+              <button onclick="downloadReport('markdown')" class="w-full bg-brand-cyan hover:bg-cyan-300 text-black font-bold py-2.5 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i> Download Markdown
+              </button>
+            </div>
+
+            <div class="bg-brand-darker border border-brand-border rounded-2xl p-6 flex flex-col justify-between">
+              <div>
+                <div class="h-12 w-12 rounded-xl bg-emerald-950/80 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4">
+                  <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                </div>
+                <h4 class="font-bold text-lg text-white mb-2">CSV Spreadsheet</h4>
+                <p class="text-xs text-slate-400 font-mono mb-4">Raw comma-separated data formatted for Microsoft Excel, Google Sheets, or Apple Numbers.</p>
+              </div>
+              <button onclick="downloadCsv()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2.5 rounded-xl text-sm font-mono flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i> Download CSV
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB: SETTINGS & CONFIG -->
+      <!-- ============================================== -->
+      <section id="tab-settings" class="tab-content hidden space-y-6">
+        <!-- Categories Manager -->
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
+          <h3 class="font-bold text-lg text-white mb-1">Manage Categories</h3>
+          <p class="text-xs text-slate-400 font-mono mb-4">Custom tags for categorizing your spending</p>
+          <div class="flex gap-3 mb-4">
+            <input type="text" id="newCategoryInput" placeholder="New Category (e.g. ✈️ Travel, 🎮 Gaming)..." class="bg-brand-darker border border-brand-border rounded-lg px-3 py-2 text-sm text-white font-mono flex-1 outline-none focus:border-brand-cyan">
+            <button onclick="addNewCategory()" class="bg-brand-cyan text-black font-bold px-4 py-2 rounded-lg text-sm font-mono">Add Category</button>
+          </div>
+          <div id="categoryTagsContainer" class="flex flex-wrap gap-2">
+            <!-- Tags injected via JS -->
+          </div>
+        </div>
+
+        <!-- AI Engine Configuration -->
+        <div class="bg-brand-card border border-brand-border rounded-2xl p-6">
+          <h3 class="font-bold text-lg text-white mb-1">AI Advisor Engine Settings</h3>
+          <p class="text-xs text-slate-400 font-mono mb-4">Configure local Ollama offline endpoint or Google Gemini API</p>
+          
+          <div class="space-y-4 max-w-xl font-mono text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Active AI Provider:</label>
+              <select id="aiProviderSelect" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none focus:border-brand-cyan" onchange="toggleAiInputs()">
+                <option value="ollama">🦙 Local Offline (Ollama - Free & 100% Private)</option>
+                <option value="gemini">🔷 Google Gemini API (High-speed Cloud)</option>
+              </select>
+            </div>
+
+            <div id="boxOllamaConfig" class="space-y-3">
+              <div>
+                <label class="block text-slate-400 mb-1">Ollama Host URL:</label>
+                <input type="text" id="cfgOllamaHost" value="http://localhost:11434" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1">Model Name:</label>
+                <input type="text" id="cfgOllamaModel" value="llama3.2:3b" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+              </div>
+            </div>
+
+            <div id="boxGeminiConfig" class="space-y-3 hidden">
+              <div>
+                <label class="block text-slate-400 mb-1">Google Gemini API Key:</label>
+                <input type="password" id="cfgGeminiKey" placeholder="AIzaSy..." class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1">Gemini Model:</label>
+                <select id="cfgGeminiModel" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                  <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                  <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                </select>
+              </div>
+            </div>
+
+            <button onclick="saveAiSettings()" class="bg-brand-green text-black font-bold px-4 py-2.5 rounded-lg text-xs font-mono">Save AI Configuration</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Modal: Add Expense -->
+  <div id="modalAddExpense" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-brand-card border border-brand-border rounded-2xl w-full max-w-md p-6 font-mono relative neon-border-cyan">
+      <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <i data-lucide="plus-circle" class="w-5 h-5 text-brand-cyan"></i> Record New Expense
+      </h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Amount (₹):</label>
+          <input type="number" step="0.01" id="inputExpAmount" placeholder="e.g. 250" class="w-full bg-brand-darker border border-brand-border rounded-lg p-3 text-base text-brand-cyan font-bold outline-none focus:border-brand-cyan">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Category:</label>
+          <select id="inputExpCategory" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none"></select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Description / Note:</label>
+          <input type="text" id="inputExpDesc" placeholder="e.g. Lunch with team, Groceries..." class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Date:</label>
+          <input type="date" id="inputExpDate" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Payment Method:</label>
+          <select id="inputExpMethod" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+            <option value="📱 UPI / GPay / PhonePe">📱 UPI / GPay / PhonePe</option>
+            <option value="💳 Credit/Debit Card">💳 Credit/Debit Card</option>
+            <option value="💵 Cash">💵 Cash</option>
+            <option value="🏦 Net Banking">🏦 Net Banking</option>
+            <option value="🪙 Other">🪙 Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeModal('modalAddExpense')" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-xs">Cancel</button>
+        <button onclick="submitExpense()" class="bg-brand-cyan hover:bg-cyan-400 text-black font-bold px-5 py-2 rounded-lg text-xs">Save Expense</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Set Monthly Budget -->
+  <div id="modalSetBudget" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-brand-card border border-brand-border rounded-2xl w-full max-w-sm p-6 font-mono relative">
+      <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <i data-lucide="target" class="w-5 h-5 text-brand-yellow"></i> Set Monthly Budget
+      </h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Monthly Budget Limit (₹):</label>
+          <input type="number" step="1" id="inputBudgetAmount" placeholder="e.g. 30000" class="w-full bg-brand-darker border border-brand-border rounded-lg p-3 text-base text-brand-yellow font-bold outline-none focus:border-brand-yellow">
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeModal('modalSetBudget')" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-xs">Cancel</button>
+        <button onclick="submitBudget()" class="bg-brand-yellow hover:bg-yellow-400 text-black font-bold px-5 py-2 rounded-lg text-xs">Update Budget</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Loan/Debt -->
+  <div id="modalAddLoan" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-brand-card border border-brand-border rounded-2xl w-full max-w-md p-6 font-mono relative">
+      <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <i data-lucide="hand-coins" class="w-5 h-5 text-brand-green"></i> Record Loan / Debt
+      </h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Transaction Type:</label>
+          <select id="inputLoanType" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+            <option value="lent">🟢 Lent Money (Someone owes you)</option>
+            <option value="borrowed">🔴 Borrowed Money (You owe someone)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Person Name:</label>
+          <input type="text" id="inputLoanPerson" placeholder="e.g. Rahul, Priya..." class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Amount (₹):</label>
+          <input type="number" step="0.01" id="inputLoanAmount" placeholder="e.g. 1500" class="w-full bg-brand-darker border border-brand-border rounded-lg p-3 text-base text-brand-green font-bold outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Due Date (Optional):</label>
+          <input type="date" id="inputLoanDue" class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Notes / Reason:</label>
+          <input type="text" id="inputLoanNotes" placeholder="e.g. Trip hotel advance split..." class="w-full bg-brand-darker border border-brand-border rounded-lg p-2.5 text-white outline-none">
+        </div>
+      </div>
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeModal('modalAddLoan')" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-xs">Cancel</button>
+        <button onclick="submitLoan()" class="bg-brand-green hover:bg-emerald-400 text-black font-bold px-5 py-2 rounded-lg text-xs">Save Loan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    let dailyChart = null;
+    let donutChart = null;
+    let monthlyChart = null;
+    let allExpenses = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      
+      document.getElementById('monthPicker').value = `${yyyy}-${mm}`;
+      document.getElementById('inputExpDate').value = `${yyyy}-${mm}-${dd}`;
+      
+      loadCategories();
+      loadAiSettings();
+      loadDashboard();
+    });
+
+    function getSelectedMonth() {
+      return document.getElementById('monthPicker').value || new Date().toISOString().slice(0, 7);
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(el => {
+        el.classList.remove('border', 'border-brand-cyan/40', 'bg-brand-cyan/10', 'text-brand-cyan');
+        el.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`nav-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-400');
+        activeBtn.classList.add('border', 'border-brand-cyan/40', 'bg-brand-cyan/10', 'text-brand-cyan');
+      }
+
+      if (tabId === 'dashboard') loadDashboard();
+      if (tabId === 'transactions') loadTransactions();
+      if (tabId === 'loans') loadLoans();
+      lucide.createIcons();
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    // Dashboard Data Fetching & Charts
+    async function loadDashboard() {
+      const month = getSelectedMonth();
+      try {
+        const [sumRes, dailyRes, monthlyRes] = await Promise.all([
+          fetch(`/api/summary?month=${month}`).then(r => r.json()),
+          fetch(`/api/charts/daily?month=${month}`).then(r => r.json()),
+          fetch(`/api/charts/monthly`).then(r => r.json())
+        ]);
+
+        const s = sumRes.summary;
+        const ls = sumRes.loans_summary;
+
+        // Stats Cards
+        document.getElementById('statTotalSpent').innerText = `₹${s.total_amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('statTxnCount').innerText = `${s.count} transactions recorded`;
+
+        if (s.budget) {
+          document.getElementById('statBudgetLimit').innerText = `₹${s.budget.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+          const rem = s.budget - s.total_amount;
+          const pct = (s.total_amount / s.budget) * 100;
+          if (rem >= 0) {
+            document.getElementById('statBudgetStatus').innerHTML = `<span class="text-brand-green font-bold">₹${rem.toLocaleString('en-IN')} remaining</span> (${pct.toFixed(1)}% used)`;
+          } else {
+            document.getElementById('statBudgetStatus').innerHTML = `<span class="text-red-400 font-bold">₹${Math.abs(rem).toLocaleString('en-IN')} OVER BUDGET</span> (${pct.toFixed(1)}% used)`;
+          }
+        } else {
+          document.getElementById('statBudgetLimit').innerText = 'Not Set';
+          document.getElementById('statBudgetStatus').innerText = 'Click "Set Goal" to configure';
+        }
+
+        document.getElementById('statLent').innerText = `₹${ls.lent_pending.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('statBorrowed').innerText = `₹${ls.borrowed_pending.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('statNetKhata').innerText = `Net Balance: ₹${ls.net_balance.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+
+        // Render Charts
+        renderDailyChart(dailyRes);
+        renderDonutChart(s.by_category);
+        renderMonthlyHistoryChart(monthlyRes);
+
+      } catch (err) {
+        console.error('Error loading dashboard:', err);
+      }
+    }
+
+    function renderDailyChart(dailyData) {
+      const ctx = document.getElementById('chartDailyCurve').getContext('2d');
+      if (dailyChart) dailyChart.destroy();
+
+      const labels = dailyData.map(d => d.date.slice(8)); // DD
+      const values = dailyData.map(d => d.total);
+
+      if (dailyData.length > 0) {
+        const peak = dailyData.reduce((max, d) => d.total > max.total ? d : max, dailyData[0]);
+        document.getElementById('badgePeakDay').innerText = `Peak: ${peak.date} (₹${peak.total.toLocaleString('en-IN')})`;
+      } else {
+        document.getElementById('badgePeakDay').innerText = 'Peak: None';
+      }
+
+      dailyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels.length ? labels : ['01'],
+          datasets: [{
+            label: 'Spent (₹)',
+            data: values.length ? values : [0],
+            borderColor: '#00e5ff',
+            backgroundColor: 'rgba(0, 229, 255, 0.1)',
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#ff79c6',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (c) => ` ₹${c.parsed.y.toLocaleString('en-IN')}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#1f293d' },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } }
+            },
+            y: {
+              grid: { color: '#1f293d' },
+              ticks: {
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono' },
+                callback: (v) => '₹' + v.toLocaleString('en-IN')
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderDonutChart(catData) {
+      const ctx = document.getElementById('chartCategoryDonut').getContext('2d');
+      if (donutChart) donutChart.destroy();
+
+      const labels = (catData && catData.length) ? catData.map(c => c.category) : ['No Expenses'];
+      const values = (catData && catData.length) ? catData.map(c => c.total) : [1];
+      const colors = ['#00e5ff', '#ff79c6', '#bd93f9', '#50fa7b', '#f1fa8c', '#ffb86c', '#ff5555', '#8be9fd', '#3a86ff'];
+
+      donutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: (catData && catData.length) ? colors.slice(0, catData.length) : ['#1f293d'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#cbd5e1', font: { family: 'JetBrains Mono', size: 10 }, boxWidth: 10 }
+            }
+          },
+          cutout: '70%'
+        }
+      });
+    }
+
+    function renderMonthlyHistoryChart(historyData) {
+      const ctx = document.getElementById('chartMonthlyHistory').getContext('2d');
+      if (monthlyChart) monthlyChart.destroy();
+
+      const labels = historyData.map(h => h.month);
+      const values = historyData.map(h => h.total);
+
+      monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Monthly Total (₹)',
+            data: values,
+            backgroundColor: 'rgba(181, 23, 158, 0.7)',
+            borderColor: '#b5179e',
+            borderWidth: 1.5,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (c) => ` ₹${c.parsed.y.toLocaleString('en-IN')}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono' } }
+            },
+            y: {
+              grid: { color: '#1f293d' },
+              ticks: {
+                color: '#94a3b8',
+                font: { family: 'JetBrains Mono' },
+                callback: (v) => '₹' + v.toLocaleString('en-IN')
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Transactions API
+    async function loadTransactions() {
+      const month = getSelectedMonth();
+      allExpenses = await fetch(`/api/expenses?month=${month}`).then(r => r.json());
+      renderTransactionsTable(allExpenses);
+    }
+
+    function filterTransactions() {
+      const q = document.getElementById('txSearchInput').value.toLowerCase();
+      const cat = document.getElementById('txCategoryFilter').value;
+
+      const filtered = allExpenses.filter(e => {
+        const matchesQuery = (e.description || '').toLowerCase().includes(q) || e.category.toLowerCase().includes(q) || (e.payment_method || '').toLowerCase().includes(q);
+        const matchesCat = (cat === 'All') || (e.category === cat);
+        return matchesQuery && matchesCat;
+      });
+      renderTransactionsTable(filtered);
+    }
+
+    function renderTransactionsTable(list) {
+      const tbody = document.getElementById('txTableBody');
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No transactions recorded this month.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(e => `
+        <tr class="hover:bg-brand-card/50 transition-colors">
+          <td class="p-3 text-center text-slate-500">#${e.id}</td>
+          <td class="p-3 text-slate-300 font-bold">${e.date}</td>
+          <td class="p-3 text-brand-pink font-semibold">${e.category}</td>
+          <td class="p-3 text-slate-300">${e.description || '-'}</td>
+          <td class="p-3 text-brand-yellow text-xs">${e.payment_method}</td>
+          <td class="p-3 text-right font-bold text-brand-green text-sm">₹${e.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+          <td class="p-3 text-center">
+            <button onclick="deleteExpenseItem(${e.id})" class="text-slate-500 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+          </td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    async function submitExpense() {
+      const amount = parseFloat(document.getElementById('inputExpAmount').value);
+      const category = document.getElementById('inputExpCategory').value;
+      const description = document.getElementById('inputExpDesc').value;
+      const date = document.getElementById('inputExpDate').value;
+      const payment_method = document.getElementById('inputExpMethod').value;
+
+      if (!amount || amount <= 0) return alert('Please enter a valid positive amount.');
+      if (!category) return alert('Please select a category.');
+
+      await fetch('/api/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, category, description, date, payment_method })
+      });
+
+      closeModal('modalAddExpense');
+      document.getElementById('inputExpAmount').value = '';
+      document.getElementById('inputExpDesc').value = '';
+      loadDashboard();
+      if (!document.getElementById('tab-transactions').classList.contains('hidden')) {
+        loadTransactions();
+      }
+    }
+
+    async function deleteExpenseItem(id) {
+      if (!confirm(`Delete transaction #${id}?`)) return;
+      await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+      loadDashboard();
+      loadTransactions();
+    }
+
+    // Loans / Khata API
+    async function loadLoans() {
+      const loans = await fetch('/api/loans').then(r => r.json());
+      const tbody = document.getElementById('loansTableBody');
+
+      if (!loans || loans.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-500">No active loans or debt records.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = loans.map(l => {
+        const rem = Math.max(0, l.amount - (l.settled_amount || 0));
+        const isLent = l.type === 'lent';
+        const typeBadge = isLent 
+          ? `<span class="bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold">LENT</span>` 
+          : `<span class="bg-red-950 text-red-400 border border-red-500/30 px-2 py-0.5 rounded text-[10px] font-bold">BORROWED</span>`;
+        
+        const statusBadge = l.status === 'settled'
+          ? `<span class="text-brand-green font-bold">SETTLED</span>`
+          : (l.status === 'partial' ? `<span class="text-brand-yellow font-bold">PARTIAL</span>` : `<span class="text-red-400 font-bold">PENDING</span>`);
+
+        return `
+          <tr class="hover:bg-brand-card/50 transition-colors">
+            <td class="p-3 text-center text-slate-500">#${l.id}</td>
+            <td class="p-3 text-center">${typeBadge}</td>
+            <td class="p-3 font-bold text-white">${l.person}</td>
+            <td class="p-3 text-right text-brand-yellow">₹${l.amount.toLocaleString('en-IN')}</td>
+            <td class="p-3 text-right text-brand-green">₹${(l.settled_amount || 0).toLocaleString('en-IN')}</td>
+            <td class="p-3 text-right font-bold ${isLent ? 'text-brand-cyan' : 'text-red-400'}">₹${rem.toLocaleString('en-IN')}</td>
+            <td class="p-3 text-slate-400">${l.due_date || '-'}</td>
+            <td class="p-3 text-center text-[11px]">${statusBadge}</td>
+            <td class="p-3 text-slate-400">${l.notes || '-'}</td>
+            <td class="p-3 text-center">
+              ${l.status !== 'settled' ? `<button onclick="settleLoanPrompt(${l.id}, ${rem})" class="bg-emerald-500 hover:bg-emerald-400 text-black px-2 py-1 rounded text-[11px] font-bold mr-1">Settle</button>` : ''}
+              <button onclick="deleteLoanItem(${l.id})" class="text-slate-500 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    async function submitLoan() {
+      const type = document.getElementById('inputLoanType').value;
+      const person = document.getElementById('inputLoanPerson').value.trim();
+      const amount = parseFloat(document.getElementById('inputLoanAmount').value);
+      const due_date = document.getElementById('inputLoanDue').value || null;
+      const notes = document.getElementById('inputLoanNotes').value || null;
+
+      if (!person || !amount || amount <= 0) return alert('Please enter valid person name and amount.');
+
+      await fetch('/api/loans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, person, amount, due_date, notes })
+      });
+
+      closeModal('modalAddLoan');
+      loadLoans();
+      loadDashboard();
+    }
+
+    async function settleLoanPrompt(id, rem) {
+      const amtStr = prompt(`Enter repayment amount (Remaining: ₹${rem}):`, rem);
+      if (!amtStr) return;
+      const amount = parseFloat(amtStr);
+      if (!amount || amount <= 0) return;
+
+      await fetch(`/api/loans/${id}/settle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      });
+      loadLoans();
+      loadDashboard();
+    }
+
+    async function deleteLoanItem(id) {
+      if (!confirm(`Delete loan record #${id}?`)) return;
+      await fetch(`/api/loans/${id}`, { method: 'DELETE' });
+      loadLoans();
+      loadDashboard();
+    }
+
+    // Categories
+    async function loadCategories() {
+      const cats = await fetch('/api/categories').then(r => r.json());
+      const selectExp = document.getElementById('inputExpCategory');
+      const selectFilter = document.getElementById('txCategoryFilter');
+      const container = document.getElementById('categoryTagsContainer');
+
+      selectExp.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+      selectFilter.innerHTML = `<option value="All">All Categories</option>` + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+      container.innerHTML = cats.map(c => `
+        <span class="bg-brand-darker border border-brand-border text-slate-300 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold">${c}</span>
+      `).join('');
+    }
+
+    async function addNewCategory() {
+      const input = document.getElementById('newCategoryInput');
+      const name = input.value.trim();
+      if (!name) return;
+      await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      input.value = '';
+      loadCategories();
+    }
+
+    // Budget Modal
+    function openSetBudgetModal() {
+      openModal('modalSetBudget');
+    }
+
+    async function submitBudget() {
+      const amount = parseFloat(document.getElementById('inputBudgetAmount').value);
+      if (!amount || amount <= 0) return alert('Enter a valid budget amount');
+      const month = getSelectedMonth();
+
+      await fetch('/api/budget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month, amount })
+      });
+      closeModal('modalSetBudget');
+      loadDashboard();
+    }
+
+    // AI Advisor Tab
+    async function runFullAiAudit() {
+      const month = getSelectedMonth();
+      const box = document.getElementById('aiResultBox');
+      box.innerHTML = `<div class="text-brand-cyan flex items-center gap-2"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> SPEND AI is evaluating your ${month} financial data...</div>`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/ai/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ month })
+        }).then(r => r.json());
+
+        box.innerText = res.report || 'No response returned.';
+      } catch (err) {
+        box.innerHTML = `<span class="text-red-400">AI Analysis Error: ${err}</span>`;
+      }
+    }
+
+    async function askAiCustomQuery() {
+      const q = document.getElementById('aiCustomQuery').value.trim();
+      if (!q) return;
+      const month = getSelectedMonth();
+      const box = document.getElementById('aiResultBox');
+      box.innerHTML = `<div class="text-brand-magenta flex items-center gap-2"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Answering: "${q}"...</div>`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/ai/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ month, question: q })
+        }).then(r => r.json());
+
+        box.innerText = res.report || 'No response returned.';
+      } catch (err) {
+        box.innerHTML = `<span class="text-red-400">Error: ${err}</span>`;
+      }
+    }
+
+    async function loadAiSettings() {
+      const cfg = await fetch('/api/ai/config').then(r => r.json());
+      document.getElementById('aiProviderSelect').value = cfg.provider || 'ollama';
+      document.getElementById('cfgOllamaHost').value = cfg.ollama_host || 'http://localhost:11434';
+      document.getElementById('cfgOllamaModel').value = cfg.ollama_model || 'llama3.2:3b';
+      document.getElementById('cfgGeminiKey').value = cfg.gemini_api_key || '';
+      document.getElementById('cfgGeminiModel').value = cfg.gemini_model || 'gemini-2.5-flash';
+      toggleAiInputs();
+    }
+
+    function toggleAiInputs() {
+      const p = document.getElementById('aiProviderSelect').value;
+      if (p === 'gemini') {
+        document.getElementById('boxGeminiConfig').classList.remove('hidden');
+        document.getElementById('boxOllamaConfig').classList.add('hidden');
+      } else {
+        document.getElementById('boxGeminiConfig').classList.add('hidden');
+        document.getElementById('boxOllamaConfig').classList.remove('hidden');
+      }
+    }
+
+    async function saveAiSettings() {
+      const cfg = {
+        provider: document.getElementById('aiProviderSelect').value,
+        ollama_host: document.getElementById('cfgOllamaHost').value.trim(),
+        ollama_model: document.getElementById('cfgOllamaModel').value.trim(),
+        gemini_api_key: document.getElementById('cfgGeminiKey').value.trim(),
+        gemini_model: document.getElementById('cfgGeminiModel').value
+      };
+      await fetch('/api/ai/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg)
+      });
+      alert('AI Configuration Saved!');
+    }
+
+    // Reports Download
+    function downloadReport(format) {
+      const month = getSelectedMonth();
+      const url = format === 'pdf' ? `/api/reports/pdf?month=${month}&include_ai=true` : `/api/reports/markdown?month=${month}&include_ai=true`;
+      window.open(url, '_blank');
+    }
+
+    function downloadCsv() {
+      const expenses = allExpenses;
+      if (!expenses.length) return alert('No expenses to export');
+      let csvContent = "data:text/csv;charset=utf-8,ID,Date,Category,Amount,Description,Payment Method\n";
+      expenses.forEach(e => {
+        csvContent += `${e.id},${e.date},"${e.category}",${e.amount},"${e.description || ''}","${e.payment_method}"\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `spend_export_${getSelectedMonth()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+    }
+  </script>
+</body>
+</html>

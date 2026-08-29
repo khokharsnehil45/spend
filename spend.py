@@ -941,10 +941,23 @@ def action_ai_settings():
     console.print(f"\n[bold green]✓ AI configuration saved successfully![/bold green]\n")
     pause_prompt()
 
+def action_launch_gui():
+    console.clear()
+    render_banner()
+    print_wizard_box("🚀 Launching SPEND Web GUI Dashboard", "Starting local server at http://localhost:8321")
+    console.print("\n[bold cyan]Opening your browser to SPEND GUI...[/bold cyan]")
+    console.print("[dim]Press Ctrl+C anytime to stop GUI server and return to terminal.[/dim]\n")
+    import server
+    server.launch_server(port=8321, open_browser=True)
+
 # ==========================================
 # MAIN INTERACTIVE LOOP
 # ==========================================
 def main():
+    if len(sys.argv) > 1 and sys.argv[1].lower() in ["gui", "web", "--gui", "-g"]:
+        action_launch_gui()
+        return
+
     db.init_db()
     
     while True:
@@ -958,16 +971,17 @@ def main():
         choice = questionary.select(
             "Select an action to launch: (Use arrow keys)",
             choices=[
-                questionary.Choice("➕  Add New Expense        — Record a purchase, bill, or daily transaction", value="add"),
-                questionary.Choice("📜  View & Search Expenses — Filter transaction history, inspect and delete", value="view"),
-                questionary.Choice("📈  Spend Graph & Trends   — Daily timelines, month-over-month visual charts", value="graphs"),
-                questionary.Choice("📊  Analytics & Dashboard  — Monthly spending summaries, category breakdown", value="analytics"),
-                questionary.Choice("🤖  AI Financial Advisor   — Smart spending audits & cost reduction (Ollama/Gemini)", value="ai"),
-                questionary.Choice("🤝  Lending & Borrowing    — Track money lent to friends & debts owed", value="loans"),
-                questionary.Choice("🎯  Set Monthly Budget     — Configure spending limits and track savings goals", value="budget"),
-                questionary.Choice("🏷️   Manage Categories      — Browse and create custom spending tags", value="categories"),
-                questionary.Choice("⚙️   AI Advisor Settings    — Configure Ollama host / Gemini API key", value="ai_settings"),
-                questionary.Choice("📄  Export Reports & Data  — Generate PDF statements, Markdown & CSVs", value="export"),
+                questionary.Choice("💻  Launch SPEND GUI (Web App) — Modern cyberpunk browser dashboard", value="gui"),
+                questionary.Choice("➕  Add New Expense            — Record a purchase, bill, or daily transaction", value="add"),
+                questionary.Choice("📜  View & Search Expenses     — Filter transaction history, inspect and delete", value="view"),
+                questionary.Choice("📈  Spend Graph & Trends       — Daily timelines, month-over-month visual charts", value="graphs"),
+                questionary.Choice("📊  Analytics & Dashboard      — Monthly spending summaries, category breakdown", value="analytics"),
+                questionary.Choice("🤖  AI Financial Advisor       — Smart spending audits & cost reduction (Ollama/Gemini)", value="ai"),
+                questionary.Choice("🤝  Lending & Borrowing        — Track money lent to friends & debts owed", value="loans"),
+                questionary.Choice("🎯  Set Monthly Budget         — Configure spending limits and track savings goals", value="budget"),
+                questionary.Choice("🏷️   Manage Categories          — Browse and create custom spending tags", value="categories"),
+                questionary.Choice("⚙️   AI Advisor Settings        — Configure Ollama host / Gemini API key", value="ai_settings"),
+                questionary.Choice("📄  Export Reports & Data      — Generate PDF statements, Markdown & CSVs", value="export"),
                 questionary.Separator(),
                 questionary.Choice("🚪  Exit SPEND", value="exit")
             ],
@@ -977,6 +991,8 @@ def main():
         if choice is None or choice == "exit":
             console.print("\n[bold magenta]Thank you for using SPEND! Have a great day! 👋[/bold magenta]\n")
             sys.exit(0)
+        elif choice == "gui":
+            action_launch_gui()
         elif choice == "add":
             action_add_expense()
         elif choice == "view":
