@@ -6,7 +6,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-DB_PATH = Path.home() / ".spend_tracker.db"
+DB_PATH = Path(os.getenv("SPEND_DB_PATH", str(Path.home() / ".spend_tracker.db")))
+if os.getenv("VERCEL"):
+    DB_PATH = Path("/tmp/spend_tracker.db")
 
 DEFAULT_CATEGORIES = [
     ("🍔 Food & Dining", "#ff79c6"),

@@ -1,6 +1,16 @@
-# SPEND - Retro CLI & Cyberpunk GUI Expense Manager
+# SPEND — Minimalist Financial Manager (CLI & Web)
 
-A fast, lightweight personal expense tracker with interactive Terminal CLI and Cyberpunk Web/Desktop Dashboard built with **FastAPI**, **Tailwind CSS**, **Chart.js**, **Rich**, and **Questionary**, matching the aesthetic theme of [HANDY](file:///home/kevin/handy-cli/handy.py).
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fkhokharsnehil45%2Fspend)
+
+A fast, lightweight, multi-account personal expense manager with an interactive Terminal CLI and a clean Minimalist Web App built with **FastAPI**, **Tailwind CSS**, and **Chart.js**.
+
+## 🌐 Deploy to Vercel (Free 1-Click)
+
+You can deploy this web app online completely free on Vercel:
+
+1. Click the **[Deploy with Vercel](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fkhokharsnehil45%2Fspend)** button or import the repo `khokharsnehil45/spend` on [Vercel Dashboard](https://vercel.com).
+2. Click **Deploy**. Vercel will automatically detect `vercel.json` and deploy the FastAPI serverless app.
+3. Your live URL (e.g. `https://spend-xxx.vercel.app`) will be ready in under 60 seconds!
 
 ## ✨ Features
 
