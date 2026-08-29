@@ -56,6 +56,14 @@ def init_db(db_path: Path = DB_PATH):
             ("admin", h, s, "Primary User", datetime.now().isoformat())
         )
 
+    # Automatic column migration for legacy tables
+    tables = ['categories', 'expenses', 'budgets', 'loans']
+    for table in tables:
+        cursor.execute(f"PRAGMA table_info({table})")
+        cols = [info[1] for info in cursor.fetchall()]
+        if cols and 'user_id' not in cols:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN user_id INTEGER DEFAULT 1")
+
     # 2. Categories
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS categories (
