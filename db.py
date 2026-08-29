@@ -1,4 +1,7 @@
 import sqlite3
+import hashlib
+import os
+import secrets
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -18,23 +21,57 @@ DEFAULT_CATEGORIES = [
     ("📦 Other / Misc", "#6272a4")
 ]
 
+def hash_password(password: str, salt: Optional[str] = None) -> tuple[str, str]:
+    if not salt:
+        salt = secrets.token_hex(16)
+    hashed = hashlib.sha256((password + salt).encode('utf-8')).hexdigest()
+    return hashed, salt
+
+def verify_password(password: str, hashed: str, salt: str) -> bool:
+    calc, _ = hash_password(password, salt)
+    return calc == hashed
+
 def init_db(db_path: Path = DB_PATH):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Table for Categories
+    # 1. Users table (Multi-Account Authentication)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        salt TEXT NOT NULL,
+        name TEXT,
+        created_at TEXT NOT NULL
+    )
+    """)
+
+    # Check for existing default user, create if none
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+        h, s = hash_password("admin123")
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, salt, name, created_at) VALUES (?, ?, ?, ?, ?)",
+            ("admin", h, s, "Primary User", datetime.now().isoformat())
+        )
+
+    # 2. Categories
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL,
-        color TEXT DEFAULT '#8be9fd'
+        user_id INTEGER DEFAULT 1,
+        name TEXT NOT NULL,
+        color TEXT DEFAULT '#8be9fd',
+        UNIQUE(user_id, name)
     )
     """)
     
-    # Table for Expenses
+    # 3. Expenses
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER DEFAULT 1,
         date TEXT NOT NULL,
         category TEXT NOT NULL,
         amount REAL NOT NULL,
@@ -44,57 +81,114 @@ def init_db(db_path: Path = DB_PATH):
     )
     """)
 
-    # Table for Monthly Budget Goals
+    # 4. Monthly Budget Goals
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS budgets (
-        month TEXT PRIMARY KEY, -- format YYYY-MM
-        amount REAL NOT NULL
+        user_id INTEGER DEFAULT 1,
+        month TEXT NOT NULL,
+        amount REAL NOT NULL,
+        PRIMARY KEY(user_id, month)
     )
     """)
 
-    # Table for Loans & Debts (Lending / Borrowing)
+    # 5. Loans & Debts (Khata)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS loans (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        type TEXT NOT NULL, -- 'lent' (you gave to someone) or 'borrowed' (you owe someone)
+        user_id INTEGER DEFAULT 1,
+        type TEXT NOT NULL, -- 'lent' or 'borrowed'
         person TEXT NOT NULL,
         amount REAL NOT NULL,
         settled_amount REAL DEFAULT 0.0,
         due_date TEXT,
         notes TEXT,
-        status TEXT DEFAULT 'pending', -- 'pending', 'settled', 'partial'
+        status TEXT DEFAULT 'pending',
         created_at TEXT NOT NULL
     )
     """)
     
-    # Seed default categories if empty
-    cursor.execute("SELECT COUNT(*) FROM categories")
+    # Seed default categories for user_id = 1 if empty
+    cursor.execute("SELECT COUNT(*) FROM categories WHERE user_id = 1")
     if cursor.fetchone()[0] == 0:
-        cursor.executemany("INSERT INTO categories (name, color) VALUES (?, ?)", DEFAULT_CATEGORIES)
+        cursor.executemany("INSERT OR IGNORE INTO categories (user_id, name, color) VALUES (1, ?, ?)", DEFAULT_CATEGORIES)
         
     conn.commit()
     conn.close()
 
-def add_expense(amount: float, category: str, description: str, date: str, payment_method: str = "Card", db_path: Path = DB_PATH) -> int:
+# ==========================================
+# USER AUTHENTICATION & MULTI-ACCOUNT
+# ==========================================
+
+def create_user(username: str, password: str, name: Optional[str] = None, db_path: Path = DB_PATH) -> tuple[bool, str, Optional[int]]:
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    h, s = hash_password(password)
+    now = datetime.now().isoformat()
+    try:
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, salt, name, created_at) VALUES (?, ?, ?, ?, ?)",
+            (username.strip().lower(), h, s, name or username, now)
+        )
+        user_id = cursor.lastrowid
+        # Seed default categories for this new account
+        cursor.executemany("INSERT INTO categories (user_id, name, color) VALUES (?, ?, ?)", [(user_id, cat[0], cat[1]) for cat in DEFAULT_CATEGORIES])
+        conn.commit()
+        conn.close()
+        return True, "Account created successfully", user_id
+    except sqlite3.IntegrityError:
+        conn.close()
+        return False, "Username already exists", None
+
+def authenticate_user(username: str, password: str, db_path: Path = DB_PATH) -> Optional[Dict[str, Any]]:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username.strip().lower(),))
+    user = cursor.fetchone()
+    conn.close()
+    if not user:
+        return None
+    if verify_password(password, user["password_hash"], user["salt"]):
+        return {
+            "id": user["id"],
+            "username": user["username"],
+            "name": user["name"] or user["username"]
+        }
+    return None
+
+def list_users(db_path: Path = DB_PATH) -> List[Dict[str, Any]]:
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, name, created_at FROM users ORDER BY id ASC")
+    users = [dict(u) for u in cursor.fetchall()]
+    conn.close()
+    return users
+
+# ==========================================
+# EXPENSES (User-Isolated)
+# ==========================================
+
+def add_expense(amount: float, category: str, description: str, date: str, payment_method: str = "Card", user_id: int = 1, db_path: Path = DB_PATH) -> int:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     created_at = datetime.now().isoformat()
     cursor.execute(
-        "INSERT INTO expenses (date, category, amount, description, payment_method, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-        (date, category, amount, description, payment_method, created_at)
+        "INSERT INTO expenses (user_id, date, category, amount, description, payment_method, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (user_id, date, category, amount, description, payment_method, created_at)
     )
     expense_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return expense_id
 
-def get_expenses(limit: Optional[int] = None, category: Optional[str] = None, month: Optional[str] = None, search: Optional[str] = None, db_path: Path = DB_PATH) -> List[Dict[str, Any]]:
+def get_expenses(limit: Optional[int] = None, category: Optional[str] = None, month: Optional[str] = None, search: Optional[str] = None, user_id: int = 1, db_path: Path = DB_PATH) -> List[Dict[str, Any]]:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    query = "SELECT * FROM expenses WHERE 1=1"
-    params = []
+    query = "SELECT * FROM expenses WHERE user_id = ?"
+    params = [user_id]
     
     if category and category != "All":
         query += " AND category = ?"
@@ -119,21 +213,21 @@ def get_expenses(limit: Optional[int] = None, category: Optional[str] = None, mo
     conn.close()
     return rows
 
-def delete_expense(expense_id: int, db_path: Path = DB_PATH) -> bool:
+def delete_expense(expense_id: int, user_id: int = 1, db_path: Path = DB_PATH) -> bool:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
+    cursor.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (expense_id, user_id))
     affected = cursor.rowcount
     conn.commit()
     conn.close()
     return affected > 0
 
-def get_summary(month: Optional[str] = None, db_path: Path = DB_PATH) -> Dict[str, Any]:
+def get_summary(month: Optional[str] = None, user_id: int = 1, db_path: Path = DB_PATH) -> Dict[str, Any]:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    query = "SELECT SUM(amount), COUNT(*) FROM expenses WHERE 1=1"
-    params = []
+    query = "SELECT SUM(amount), COUNT(*) FROM expenses WHERE user_id = ?"
+    params = [user_id]
     if month:
         query += " AND date LIKE ?"
         params.append(f"{month}%")
@@ -144,26 +238,30 @@ def get_summary(month: Optional[str] = None, db_path: Path = DB_PATH) -> Dict[st
     count = count or 0
     
     # Group by category
-    cat_query = "SELECT category, SUM(amount) as cat_total, COUNT(*) as cat_count FROM expenses WHERE 1=1"
+    cat_query = "SELECT category, SUM(amount) as cat_total, COUNT(*) as cat_count FROM expenses WHERE user_id = ?"
+    cat_params = [user_id]
     if month:
         cat_query += " AND date LIKE ?"
+        cat_params.append(f"{month}%")
     cat_query += " GROUP BY category ORDER BY cat_total DESC"
     
-    cursor.execute(cat_query, params)
+    cursor.execute(cat_query, cat_params)
     by_category = [{"category": row[0], "total": row[1], "count": row[2]} for row in cursor.fetchall()]
     
     # Group by payment method
-    pm_query = "SELECT payment_method, SUM(amount) as pm_total FROM expenses WHERE 1=1"
+    pm_query = "SELECT payment_method, SUM(amount) as pm_total FROM expenses WHERE user_id = ?"
+    pm_params = [user_id]
     if month:
         pm_query += " AND date LIKE ?"
+        pm_params.append(f"{month}%")
     pm_query += " GROUP BY payment_method ORDER BY pm_total DESC"
-    cursor.execute(pm_query, params)
+    cursor.execute(pm_query, pm_params)
     by_pm = [{"method": row[0], "total": row[1]} for row in cursor.fetchall()]
     
     # Budget check
     budget_amount = None
     if month:
-        cursor.execute("SELECT amount FROM budgets WHERE month = ?", (month,))
+        cursor.execute("SELECT amount FROM budgets WHERE user_id = ? AND month = ?", (user_id, month))
         b_row = cursor.fetchone()
         if b_row:
             budget_amount = b_row[0]
@@ -177,50 +275,50 @@ def get_summary(month: Optional[str] = None, db_path: Path = DB_PATH) -> Dict[st
         "budget": budget_amount
     }
 
-def get_daily_spending(month: str, db_path: Path = DB_PATH) -> List[Dict[str, Any]]:
+def get_daily_spending(month: str, user_id: int = 1, db_path: Path = DB_PATH) -> List[Dict[str, Any]]:
     """Returns daily totals for a specific month (YYYY-MM)."""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT date, SUM(amount), COUNT(*) FROM expenses WHERE date LIKE ? GROUP BY date ORDER BY date ASC",
-        (f"{month}%",)
+        "SELECT date, SUM(amount), COUNT(*) FROM expenses WHERE user_id = ? AND date LIKE ? GROUP BY date ORDER BY date ASC",
+        (user_id, f"{month}%")
     )
     rows = [{"date": r[0], "total": r[1], "count": r[2]} for r in cursor.fetchall()]
     conn.close()
     return rows
 
-def get_monthly_history(limit: int = 12, db_path: Path = DB_PATH) -> List[Dict[str, Any]]:
+def get_monthly_history(limit: int = 12, user_id: int = 1, db_path: Path = DB_PATH) -> List[Dict[str, Any]]:
     """Returns total spending for recent months."""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT SUBSTR(date, 1, 7) as month, SUM(amount), COUNT(*) FROM expenses GROUP BY month ORDER BY month DESC LIMIT ?",
-        (limit,)
+        "SELECT SUBSTR(date, 1, 7) as month, SUM(amount), COUNT(*) FROM expenses WHERE user_id = ? GROUP BY month ORDER BY month DESC LIMIT ?",
+        (user_id, limit)
     )
     rows = [{"month": r[0], "total": r[1], "count": r[2]} for r in cursor.fetchall()]
     conn.close()
     return list(reversed(rows))
 
-def set_budget(month: str, amount: float, db_path: Path = DB_PATH):
+def set_budget(month: str, amount: float, user_id: int = 1, db_path: Path = DB_PATH):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO budgets (month, amount) VALUES (?, ?)", (month, amount))
+    cursor.execute("INSERT OR REPLACE INTO budgets (user_id, month, amount) VALUES (?, ?, ?)", (user_id, month, amount))
     conn.commit()
     conn.close()
 
-def get_all_categories(db_path: Path = DB_PATH) -> List[str]:
+def get_all_categories(user_id: int = 1, db_path: Path = DB_PATH) -> List[str]:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM categories ORDER BY id ASC")
+    cursor.execute("SELECT name FROM categories WHERE user_id = ? ORDER BY id ASC", (user_id,))
     cats = [row[0] for row in cursor.fetchall()]
     conn.close()
     return cats
 
-def add_category(name: str, color: str = "#8be9fd", db_path: Path = DB_PATH) -> bool:
+def add_category(name: str, color: str = "#8be9fd", user_id: int = 1, db_path: Path = DB_PATH) -> bool:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO categories (name, color) VALUES (?, ?)", (name, color))
+        cursor.execute("INSERT INTO categories (user_id, name, color) VALUES (?, ?, ?)", (user_id, name, color))
         conn.commit()
         success = True
     except sqlite3.IntegrityError:
@@ -232,26 +330,25 @@ def add_category(name: str, color: str = "#8be9fd", db_path: Path = DB_PATH) -> 
 # LENDING & BORROWING (LOANS / DEBTS)
 # ==========================================
 
-def add_loan(loan_type: str, person: str, amount: float, due_date: Optional[str] = None, notes: Optional[str] = None, db_path: Path = DB_PATH) -> int:
-    """Adds a lending or borrowing record. loan_type: 'lent' or 'borrowed'."""
+def add_loan(loan_type: str, person: str, amount: float, due_date: Optional[str] = None, notes: Optional[str] = None, user_id: int = 1, db_path: Path = DB_PATH) -> int:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     created_at = datetime.now().isoformat()
     cursor.execute(
-        "INSERT INTO loans (type, person, amount, settled_amount, due_date, notes, status, created_at) VALUES (?, ?, ?, 0.0, ?, ?, 'pending', ?)",
-        (loan_type, person, amount, due_date, notes, created_at)
+        "INSERT INTO loans (user_id, type, person, amount, settled_amount, due_date, notes, status, created_at) VALUES (?, ?, ?, ?, 0.0, ?, ?, 'pending', ?)",
+        (user_id, loan_type, person, amount, due_date, notes, created_at)
     )
     loan_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return loan_id
 
-def get_loans(status_filter: Optional[str] = None, type_filter: Optional[str] = None, db_path: Path = DB_PATH) -> List[Dict[str, Any]]:
+def get_loans(status_filter: Optional[str] = None, type_filter: Optional[str] = None, user_id: int = 1, db_path: Path = DB_PATH) -> List[Dict[str, Any]]:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    query = "SELECT * FROM loans WHERE 1=1"
-    params = []
+    query = "SELECT * FROM loans WHERE user_id = ?"
+    params = [user_id]
     
     if status_filter and status_filter != "all":
         query += " AND status = ?"
@@ -267,13 +364,12 @@ def get_loans(status_filter: Optional[str] = None, type_filter: Optional[str] = 
     conn.close()
     return rows
 
-def settle_loan(loan_id: int, settle_amount: float, db_path: Path = DB_PATH) -> Dict[str, Any]:
-    """Records a repayment or partial settlement on a loan."""
+def settle_loan(loan_id: int, settle_amount: float, user_id: int = 1, db_path: Path = DB_PATH) -> Dict[str, Any]:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    cursor.execute("SELECT * FROM loans WHERE id = ?", (loan_id,))
+    cursor.execute("SELECT * FROM loans WHERE id = ? AND user_id = ?", (loan_id, user_id))
     loan = cursor.fetchone()
     if not loan:
         conn.close()
@@ -283,36 +379,33 @@ def settle_loan(loan_id: int, settle_amount: float, db_path: Path = DB_PATH) -> 
     new_status = "settled" if new_settled >= loan["amount"] else "partial"
     
     cursor.execute(
-        "UPDATE loans SET settled_amount = ?, status = ? WHERE id = ?",
-        (new_settled, new_status, loan_id)
+        "UPDATE loans SET settled_amount = ?, status = ? WHERE id = ? AND user_id = ?",
+        (new_settled, new_status, loan_id, user_id)
     )
     conn.commit()
     conn.close()
     return {"success": True, "new_settled": new_settled, "status": new_status, "remaining": max(0.0, loan["amount"] - new_settled)}
 
-def delete_loan(loan_id: int, db_path: Path = DB_PATH) -> bool:
+def delete_loan(loan_id: int, user_id: int = 1, db_path: Path = DB_PATH) -> bool:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM loans WHERE id = ?", (loan_id,))
+    cursor.execute("DELETE FROM loans WHERE id = ? AND user_id = ?", (loan_id, user_id))
     affected = cursor.rowcount
     conn.commit()
     conn.close()
     return affected > 0
 
-def get_loans_summary(db_path: Path = DB_PATH) -> Dict[str, Any]:
-    """Summary of all pending money lent to others and money borrowed."""
+def get_loans_summary(user_id: int = 1, db_path: Path = DB_PATH) -> Dict[str, Any]:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Total lent (others owe you)
-    cursor.execute("SELECT SUM(amount - settled_amount) FROM loans WHERE type = 'lent' AND status != 'settled'")
+    cursor.execute("SELECT SUM(amount - settled_amount) FROM loans WHERE user_id = ? AND type = 'lent' AND status != 'settled'", (user_id,))
     total_lent_pending = cursor.fetchone()[0] or 0.0
     
-    # Total borrowed (you owe others)
-    cursor.execute("SELECT SUM(amount - settled_amount) FROM loans WHERE type = 'borrowed' AND status != 'settled'")
+    cursor.execute("SELECT SUM(amount - settled_amount) FROM loans WHERE user_id = ? AND type = 'borrowed' AND status != 'settled'", (user_id,))
     total_borrowed_pending = cursor.fetchone()[0] or 0.0
     
-    cursor.execute("SELECT COUNT(*) FROM loans WHERE status != 'settled'")
+    cursor.execute("SELECT COUNT(*) FROM loans WHERE user_id = ? AND status != 'settled'", (user_id,))
     pending_count = cursor.fetchone()[0] or 0
     
     conn.close()
