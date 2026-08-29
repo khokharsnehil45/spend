@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-SPEND - Simple Retro-Styled Personal Expense Tracker CLI
+SPEND - Simple Retro-Styled Personal Expense Tracker CLI with Multi-Account Auth.
 Theme inspired by HANDY CLI with dual-tone gradient banners, interactive questionary prompts, and rich reporting.
 """
 
 import os
 import sys
 import csv
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -35,6 +36,9 @@ CUSTOM_STYLE = Style([
     ('text', 'fg:#f8f8f2'),
 ])
 
+# Global active CLI session state
+CURRENT_USER = {"id": 1, "username": "admin", "name": "Primary User"}
+
 def render_banner(subtitle: str = "⚡ Fast, Lightweight & Intuitive Terminal Expense Tracker ⚡"):
     """Renders the retro 3D-styled SPEND banner with dual-tone gradient matching the theme."""
     banner_lines = [
@@ -55,10 +59,11 @@ def render_banner(subtitle: str = "⚡ Fast, Lightweight & Intuitive Terminal Ex
         
     banner_text.append(f"  {subtitle}", style="italic bright_white")
     
+    active_user_tag = f"Logged in: {CURRENT_USER['name']} (@{CURRENT_USER['username']})"
     console.print(Panel(
         banner_text,
         border_style="cyan",
-        subtitle="[bold magenta]v1.0.0 • Personal Finance Suite[/bold magenta]",
+        subtitle=f"[bold magenta]v1.0.0 • {active_user_tag}[/bold magenta]",
         subtitle_align="right",
         padding=(1, 2)
     ))
@@ -73,13 +78,105 @@ def pause_prompt():
     questionary.press_any_key_to_continue("Press any key to return to the main menu...").ask()
 
 # ==========================================
+# CLI LOGIN & AUTHENTICATION WIZARD
+# ==========================================
+
+def cli_auth_flow():
+    """Initial login/profile selection screen before loading the main CLI dashboard."""
+    global CURRENT_USER
+    db.init_db()
+    
+    while True:
+        console.clear()
+        
+        banner_lines = [
+            r"███████╗██████╗ ███████╗███╗   ██╗██████╗ ",
+            r"██╔════╝██╔══██╗██╔════╝████╗  ██║██╔══██╗",
+            r"███████╗██████╔╝█████╗  ██╔██╗ ██║██║  ██║",
+            r"╚════██║██╔═══╝ ██╔══╝  ██║╚██╗██║██║  ██║",
+            r"███████║██║     ███████╗██║ ╚████║██████╔╝",
+            r"╚══════╝╚═╝     ╚══════╝╚═╝  ╚═══╝╚═════╝ "
+        ]
+        banner_text = Text()
+        for i, line in enumerate(banner_lines):
+            banner_text.append(line + "\n", style="bold #00e5ff")
+        banner_text.append("  🔒 Secure Terminal Authentication & Multi-Account Manager", style="italic bright_white")
+        
+        console.print(Panel(banner_text, border_style="cyan", padding=(1, 2)))
+        print_wizard_box("🔑 SPEND Authentication", "Choose an existing profile to unlock or create a new account.")
+        
+        users = db.list_users()
+        user_choices = []
+        for u in users:
+            user_choices.append(questionary.Choice(
+                f"👤 {u['name'] or u['username']} (@{u['username']})",
+                value=("login", u["username"])
+            ))
+            
+        user_choices.append(questionary.Separator())
+        user_choices.append(questionary.Choice("➕ Create New Account", value=("register", None)))
+        user_choices.append(questionary.Choice("💻 Launch Web GUI", value=("gui", None)))
+        user_choices.append(questionary.Choice("🚪 Exit", value=("exit", None)))
+        
+        action = questionary.select(
+            "Select an account or action:",
+            choices=user_choices,
+            style=CUSTOM_STYLE
+        ).ask()
+        
+        if not action or action[0] == "exit":
+            console.print("\n[bold magenta]Goodbye! 👋[/bold magenta]\n")
+            sys.exit(0)
+            
+        elif action[0] == "gui":
+            action_launch_gui()
+            return
+            
+        elif action[0] == "register":
+            console.print("\n[bold cyan]─── Create New Profile ───[/bold cyan]")
+            username = questionary.text("Enter Username / ID (e.g. personal, business):", style=CUSTOM_STYLE).ask()
+            if not username or not username.strip():
+                continue
+            name = questionary.text("Enter Display Name (e.g. Kevin Personal):", default=username.strip(), style=CUSTOM_STYLE).ask()
+            password = questionary.password("Create Password:", style=CUSTOM_STYLE).ask()
+            if not password:
+                continue
+                
+            success, msg, uid = db.create_user(username.strip(), password, name)
+            if success:
+                CURRENT_USER = {"id": uid, "username": username.strip().lower(), "name": name or username.strip()}
+                console.print(f"\n[bold green]✓ Account created successfully! Welcome, {CURRENT_USER['name']}![/bold green]")
+                time.sleep(1)
+                return
+            else:
+                console.print(f"\n[bold red]❌ {msg}[/bold red]\n")
+                time.sleep(1.5)
+                
+        elif action[0] == "login":
+            target_uname = action[1]
+            console.print(f"\n[bold cyan]Logging into @{target_uname}...[/bold cyan]")
+            pwd = questionary.password("Enter Password:", style=CUSTOM_STYLE).ask()
+            if pwd is None:
+                continue
+                
+            user = db.authenticate_user(target_uname, pwd)
+            if user:
+                CURRENT_USER = user
+                console.print(f"\n[bold green]✓ Authenticated as {CURRENT_USER['name']}![/bold green]")
+                time.sleep(0.8)
+                return
+            else:
+                console.print("\n[bold red]❌ Incorrect password! Please try again.[/bold red]\n")
+                time.sleep(1.5)
+
+# ==========================================
 # EXPENSE ACTIONS
 # ==========================================
 
 def action_add_expense():
     console.clear()
     render_banner()
-    print_wizard_box("➕ Record New Expense", "Enter details for your transaction.")
+    print_wizard_box("➕ Record New Expense", f"Account: {CURRENT_USER['name']} (@{CURRENT_USER['username']})")
     
     # 1. Amount
     amount_str = questionary.text(
@@ -92,7 +189,7 @@ def action_add_expense():
     amount = float(amount_str)
     
     # 2. Category
-    categories = db.get_all_categories()
+    categories = db.get_all_categories(user_id=CURRENT_USER["id"])
     categories.append("➕ Create new category...")
     category = questionary.select(
         "Select category:",
@@ -109,7 +206,7 @@ def action_add_expense():
             time.sleep(1)
             return
         category = new_cat.strip()
-        db.add_category(category)
+        db.add_category(category, user_id=CURRENT_USER["id"])
         
     # 3. Description
     description = questionary.text(
@@ -154,14 +251,14 @@ def action_add_expense():
     if payment_method is None:
         return
         
-    exp_id = db.add_expense(amount, category, description, date, payment_method)
+    exp_id = db.add_expense(amount, category, description, date, payment_method, user_id=CURRENT_USER["id"])
     console.print(f"\n[bold green]✓ Expense recorded successfully! (ID: #{exp_id})[/bold green]")
     pause_prompt()
 
 def action_view_expenses():
     console.clear()
     render_banner()
-    print_wizard_box("📜 Expense History & Transactions", "Browse, filter, and inspect your records.")
+    print_wizard_box("📜 Expense History & Transactions", f"Account: {CURRENT_USER['name']} • Browse, filter, and inspect records.")
     
     filter_choice = questionary.select(
         "Filter records by:",
@@ -178,24 +275,25 @@ def action_view_expenses():
         return
         
     expenses = []
+    uid = CURRENT_USER["id"]
     if filter_choice == "Recent 20 transactions":
-        expenses = db.get_expenses(limit=20)
+        expenses = db.get_expenses(limit=20, user_id=uid)
     elif filter_choice == "All transactions":
-        expenses = db.get_expenses()
+        expenses = db.get_expenses(user_id=uid)
     elif filter_choice == "By Month (e.g. 2026-08)":
         current_m = datetime.today().strftime('%Y-%m')
         month = questionary.text("Enter month (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
         if month:
-            expenses = db.get_expenses(month=month.strip())
+            expenses = db.get_expenses(month=month.strip(), user_id=uid)
     elif filter_choice == "By Category":
-        cats = db.get_all_categories()
+        cats = db.get_all_categories(user_id=uid)
         cat = questionary.select("Select category:", choices=cats, style=CUSTOM_STYLE).ask()
         if cat:
-            expenses = db.get_expenses(category=cat)
+            expenses = db.get_expenses(category=cat, user_id=uid)
     elif filter_choice == "Search keyword":
         kw = questionary.text("Enter search query (note, category, method):", style=CUSTOM_STYLE).ask()
         if kw:
-            expenses = db.get_expenses(search=kw.strip())
+            expenses = db.get_expenses(search=kw.strip(), user_id=uid)
 
     if not expenses:
         console.print("\n[yellow]No transactions found matching your criteria.[/yellow]\n")
@@ -225,7 +323,6 @@ def action_view_expenses():
     console.print(table)
     console.print(f"[bold cyan]Total for listed entries:[/bold cyan] [bold green]₹{total:,.2f}[/bold green] ([magenta]{len(expenses)} items[/magenta])\n")
     
-    # Optional delete / manage item
     manage_choice = questionary.select(
         "Manage listed items?",
         choices=["No, return to menu", "🗑️ Delete a transaction"],
@@ -235,7 +332,7 @@ def action_view_expenses():
     if manage_choice == "🗑️ Delete a transaction":
         del_id = questionary.text("Enter transaction ID to delete (e.g. 5):", style=CUSTOM_STYLE).ask()
         if del_id and del_id.isdigit():
-            if db.delete_expense(int(del_id)):
+            if db.delete_expense(int(del_id), user_id=CURRENT_USER["id"]):
                 console.print(f"[bold green]✓ Deleted transaction #{del_id}[/bold green]")
             else:
                 console.print(f"[bold red]Transaction #{del_id} not found.[/bold red]")
@@ -248,119 +345,92 @@ def render_ascii_bar_chart(title: str, items: list, value_key: str, label_key: s
         return
         
     max_val = max([item[value_key] for item in items]) if items else 1
-    if max_val == 0:
-        max_val = 1
-        
-    table = Table(title=f"[bold {color}]{title}[/bold {color}]", border_style=color)
-    table.add_column("Period / Date", style="bold white", width=14)
-    table.add_column("Spending Trend Graph", style=f"{color}", width=max_bar_width + 4)
-    table.add_column("Amount", justify="right", style="bold green", width=14)
-    table.add_column("Txns", justify="center", style="magenta", width=6)
-    
+    table = Table(title=f"[bold {color}]{title}[/bold {color}]", border_style=color, show_lines=False)
+    table.add_column("Label / Date", style="bold white", width=16)
+    table.add_column("Amount (₹)", justify="right", style="green", width=14)
+    table.add_column("Visual Trend Graph", style=color)
+
     for item in items:
         val = item[value_key]
-        ratio = val / max_val
-        bar_len = max(1, int(ratio * max_bar_width)) if val > 0 else 0
-        bar = "█" * bar_len + ("▌" if (ratio * max_bar_width - bar_len) > 0.4 else "")
-        bar_str = bar.ljust(max_bar_width)
-        table.add_row(
-            str(item[label_key]),
-            f"[{color}]{bar}[/{color}]",
-            f"₹{val:,.2f}",
-            str(item.get("count", "-"))
-        )
+        lbl = item[label_key]
+        bar_len = int((val / max_val) * max_bar_width) if max_val > 0 else 0
+        bar_str = "█" * max(1, bar_len) if val > 0 else "▏"
+        table.add_row(lbl, f"₹{val:,.2f}", bar_str)
+
     console.print(table)
+    console.print("\n")
 
-def render_ascii_line_chart(title: str, series: list, value_key: str, label_key: str, height: int = 10, width: int = 50):
-    """Renders a 2D Braille/Unicode line chart with Y-axis currency ticks and timeline labels."""
-    if not series or len(series) < 2:
-        console.print("[dim yellow]Need at least 2 data points to plot a line chart.[/dim yellow]\n")
+def render_2d_ascii_line_chart(title: str, items: list, value_key: str = "total", label_key: str = "date", height: int = 10, width: int = 50):
+    """Renders a continuous 2D Braille/Unicode line chart with Y-axis currency ticks."""
+    if not items or len(items) == 0:
+        console.print("[dim yellow]No data points to plot continuous line chart.[/dim yellow]\n")
         return
-
-    values = [float(s[value_key]) for s in series]
-    labels = [str(s[label_key]) for s in series]
+        
+    values = [item[value_key] for item in items]
+    labels = [item[label_key].split("-")[-1] for item in items]
     
     min_val = min(values)
     max_val = max(values)
     if min_val == max_val:
-        max_val += 1.0
-        min_val = max(0.0, min_val - 1.0)
-        
-    val_range = max_val - min_val
+        min_val = 0.0
+        if max_val == 0.0:
+            max_val = 100.0
+
     n_points = len(values)
-    
-    # Resample or interpolate values to fit graph width
-    grid_w = min(width, max(20, n_points * 2))
-    sampled_vals = []
-    for x in range(grid_w):
-        idx = int((x / (grid_w - 1)) * (n_points - 1))
-        sampled_vals.append(values[idx])
-        
-    # Build 2D char canvas
-    canvas = [[" " for _ in range(grid_w)] for _ in range(height)]
-    
-    prev_y = None
-    for x, val in enumerate(sampled_vals):
-        normalized = (val - min_val) / val_range
-        y = int(normalized * (height - 1))
-        y = max(0, min(height - 1, y))
-        plot_y = (height - 1) - y
-        
-        # Connect dots
-        if prev_y is not None:
-            step = 1 if plot_y > prev_y else -1
-            for mid_y in range(prev_y, plot_y, step):
-                if canvas[mid_y][x] == " ":
-                    canvas[mid_y][x] = "│" if abs(plot_y - prev_y) > 1 else ("╱" if step == -1 else "╲")
-                    
-        canvas[plot_y][x] = "●"
-        prev_y = plot_y
+    norm_y = []
+    for v in values:
+        if max_val > min_val:
+            scaled = int(((v - min_val) / (max_val - min_val)) * (height - 1))
+        else:
+            scaled = height // 2
+        norm_y.append(scaled)
 
-    # Render Frame with Y-Axis Values
-    lines = []
-    lines.append(f"[bold cyan]📈 {title}[/bold cyan]\n")
+    grid = [[" " for _ in range(n_points * 2)] for _ in range(height)]
+
+    for i in range(n_points):
+        x = i * 2
+        y = norm_y[i]
+        grid[height - 1 - y][x] = "●"
+        if i > 0:
+            prev_y = norm_y[i - 1]
+            prev_x = (i - 1) * 2
+            mid_x = prev_x + 1
+            avg_y = (prev_y + y) // 2
+            grid[height - 1 - avg_y][mid_x] = "╱" if y > prev_y else ("╲" if y < prev_y else "─")
+
+    output = Text()
+    output.append(f"\n{title}\n\n", style="bold cyan")
+
+    y_step = (max_val - min_val) / max(1, (height - 1))
     for r in range(height):
-        frac = ((height - 1 - r) / (height - 1))
-        y_val = min_val + frac * val_range
-        axis_label = f"₹{y_val:>8,.0f} ┤"
-        row_str = "".join(canvas[r])
-        # Colorize graph curve in cyan/magenta gradient
-        colored_row = ""
-        for char in row_str:
-            if char == "●":
-                colored_row += "[bold magenta]●[/bold magenta]"
-            elif char in "│╱╲":
-                colored_row += "[cyan]" + char + "[/cyan]"
-            else:
-                colored_row += " "
-        lines.append(f"[dim]{axis_label}[/dim] {colored_row}")
-        
-    # X-Axis base line
-    lines.append(" " * 10 + "└" + "─" * grid_w)
-    
-    # X-Axis Start and End dates
-    start_lbl = labels[0]
-    end_lbl = labels[-1]
-    space_gap = grid_w - len(start_lbl) - len(end_lbl)
-    if space_gap > 0:
-        lines.append(" " * 11 + f"[dim white]{start_lbl}[/dim white]" + " " * space_gap + f"[dim white]{end_lbl}[/dim white]\n")
-    else:
-        lines.append(" " * 11 + f"[dim white]{start_lbl} ... {end_lbl}[/dim white]\n")
+        y_val = max_val - (r * y_step)
+        y_label = f"₹{y_val:8,.0f} ┤ "
+        output.append(y_label, style="dim yellow")
+        row_str = "".join(grid[r])
+        output.append(row_str + "\n", style="bold magenta")
 
-    console.print(Panel("\n".join(lines), border_style="cyan", padding=(1, 2)))
+    output.append(" " * 12 + "└" + "─" * (n_points * 2 + 2) + "\n", style="dim white")
+    
+    x_axis_labels = " " * 13
+    for lbl in labels:
+        x_axis_labels += f"{lbl:<2}"
+    output.append(x_axis_labels + "\n", style="dim cyan")
+    output.append(" " * 13 + "^ Day of Month (Timeline Baseline)\n", style="dim italic")
+
+    console.print(Panel(output, border_style="cyan", padding=(1, 2)))
 
 def action_visual_charts():
     console.clear()
     render_banner()
-    print_wizard_box("📈 Spend Graph & Visual Trends", "Interactive Line Charts, Timeline Bar Graphs & Multi-month History.")
+    print_wizard_box("📈 Graphical Spending Curves & Trajectories", f"Account: {CURRENT_USER['name']} • Visual trendlines and velocity.")
     
     chart_type = questionary.select(
-        "Select Chart to Visualize:",
+        "Select Chart to Generate:",
         choices=[
-            "📈 Daily Spending Line Chart (Continuous 2D Curve Timeline)",
-            "📊 Daily Spending Bar Graph (Day-by-Day Bars with Peak Day)",
-            "🗓️  Month-over-Month Trend (Past 6-12 Months Comparison)",
-            "🍩 Category Spending Distribution Chart",
+            "📈 2D Continuous Line Chart (Daily Trajectory Curve)",
+            "📊 Daily Spending Timeline (Day-by-Day Bar Chart)",
+            "🗓️ Month-over-Month Trend (Past 12 Months)",
+            "🍩 Category Allocation Distribution",
             "🔙 Back to Main Menu"
         ],
         style=CUSTOM_STYLE
@@ -369,134 +439,100 @@ def action_visual_charts():
     if chart_type is None or "Back" in chart_type:
         return
         
-    if "Line Chart" in chart_type:
-        current_m = datetime.today().strftime('%Y-%m')
-        month = questionary.text("Enter month for Line Chart (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
-        if not month:
-            return
-        month = month.strip()
-        daily_data = db.get_daily_spending(month)
-        if not daily_data or len(daily_data) < 2:
-            console.print(f"\n[yellow]Need at least 2 distinct days of spending in {month} to plot line chart.[/yellow]\n")
-        else:
-            console.print("\n")
-            render_ascii_line_chart(f"Daily Spending Curve for {month}", daily_data, value_key="total", label_key="date", height=10, width=50)
-            
-            total = sum(d["total"] for d in daily_data)
-            avg = total / len(daily_data)
-            peak = max(daily_data, key=lambda x: x["total"])
-            console.print(f"  🔥 [bold cyan]Peak Spending Day:[/bold cyan] [yellow]{peak['date']}[/yellow] ([bold green]₹{peak['total']:,.2f}[/bold green])")
-            console.print(f"  📊 [bold cyan]Daily Average:[/bold cyan] [bold green]₹{avg:,.2f}/day[/bold green] across [magenta]{len(daily_data)} active days[/magenta]\n")
-            
-    elif "Bar Graph" in chart_type:
-        current_m = datetime.today().strftime('%Y-%m')
+    current_m = datetime.today().strftime('%Y-%m')
+    uid = CURRENT_USER["id"]
+    
+    if "2D Continuous Line Chart" in chart_type:
         month = questionary.text("Enter month (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
         if not month:
             return
-        month = month.strip()
-        daily_data = db.get_daily_spending(month)
+        daily_data = db.get_daily_spending(month.strip(), user_id=uid)
         if not daily_data:
-            console.print(f"\n[yellow]No expenses logged in {month} to plot graph.[/yellow]\n")
-        else:
-            console.print("\n")
-            render_ascii_bar_chart(f"📊 Daily Spending Graph for {month}", daily_data, value_key="total", label_key="date", color="cyan", max_bar_width=35)
-            
-            total = sum(d["total"] for d in daily_data)
-            avg = total / len(daily_data) if daily_data else 0
-            peak = max(daily_data, key=lambda x: x["total"])
-            console.print(f"  🔥 [bold cyan]Peak Spending Day:[/bold cyan] [yellow]{peak['date']}[/yellow] ([bold green]₹{peak['total']:,.2f}[/bold green])")
-            console.print(f"  📊 [bold cyan]Active Day Average:[/bold cyan] [bold green]₹{avg:,.2f}/day[/bold green] | [magenta]{len(daily_data)} active days[/magenta]\n")
-            
-    elif "Month-over-Month" in chart_type:
-        history = db.get_monthly_history(limit=12)
-        if not history:
-            console.print("\n[yellow]No historical monthly data recorded yet.[/yellow]\n")
-        else:
-            console.print("\n")
-            if len(history) >= 2:
-                render_ascii_line_chart("Monthly Spending Trajectory (12 Months)", history, value_key="total", label_key="month", height=8, width=45)
-            render_ascii_bar_chart("🗓️ Monthly Spending History", history, value_key="total", label_key="month", color="magenta", max_bar_width=35)
-            total_all = sum(h["total"] for h in history)
-            console.print(f"  💰 [bold magenta]Total Historical Spending:[/bold magenta] [bold green]₹{total_all:,.2f}[/bold green]\n")
-            
-    elif "Category Spending" in chart_type:
-        current_m = datetime.today().strftime('%Y-%m')
+            console.print(f"\n[yellow]No spending records found in {month.strip()} to render line chart.[/yellow]\n")
+            pause_prompt()
+            return
+        render_2d_ascii_line_chart(f"📈 Daily Spending Trajectory Curve ({month.strip()})", daily_data)
+        pause_prompt()
+        
+    elif "Daily Spending Timeline" in chart_type:
         month = questionary.text("Enter month (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
         if not month:
             return
-        summary = db.get_summary(month=month.strip())
-        cats = summary.get("by_category", [])
-        if not cats:
-            console.print(f"\n[yellow]No categorized expenses in {month}.[/yellow]\n")
-        else:
-            console.print("\n")
-            render_ascii_bar_chart(f"🍩 Category Spending Graph ({month})", cats, value_key="total", label_key="category", color="green", max_bar_width=30)
-            
-    pause_prompt()
+        daily_data = db.get_daily_spending(month.strip(), user_id=uid)
+        render_ascii_bar_chart(f"📊 Daily Expenses for {month.strip()}", daily_data, value_key="total", label_key="date", color="cyan")
+        pause_prompt()
+        
+    elif "Month-over-Month" in chart_type:
+        history = db.get_monthly_history(limit=12, user_id=uid)
+        render_ascii_bar_chart("🗓️ Month-over-Month Spending (Past 12 Months)", history, value_key="total", label_key="month", color="magenta")
+        pause_prompt()
+        
+    elif "Category Allocation" in chart_type:
+        month = questionary.text("Enter month (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
+        if not month:
+            return
+        summary = db.get_summary(month=month.strip(), user_id=uid)
+        render_ascii_bar_chart(f"🍩 Category Breakdown ({month.strip()})", summary["by_category"], value_key="total", label_key="category", color="yellow")
+        pause_prompt()
 
 def action_analytics_dashboard():
     console.clear()
     render_banner()
-    print_wizard_box("📊 Analytics & Monthly Breakdown", "Review your spending distribution, categories, and budget.")
     
     current_m = datetime.today().strftime('%Y-%m')
-    month = questionary.text("Enter month for analytics (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
+    month = questionary.text("Enter month to view summary (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
     if month is None:
         return
     month = month.strip()
     
-    summary = db.get_summary(month=month)
-    total_spent = summary["total_amount"]
-    budget = summary["budget"]
+    uid = CURRENT_USER["id"]
+    summary = db.get_summary(month=month, user_id=uid)
+    loans_summary = db.get_loans_summary(user_id=uid)
     
-    # 1. Monthly Overview Panel
-    overview_text = Text()
-    overview_text.append(f"Month: ", style="bold")
-    overview_text.append(f"{month}\n", style="cyan bold")
-    overview_text.append(f"Total Transactions: ", style="bold")
-    overview_text.append(f"{summary['count']}\n", style="magenta bold")
-    overview_text.append(f"Total Spent: ", style="bold")
-    overview_text.append(f"₹{total_spent:,.2f}\n", style="bold green")
+    print_wizard_box(f"📊 Analytics Dashboard — {month}", f"Account: {CURRENT_USER['name']} (@{CURRENT_USER['username']})")
     
-    if budget:
-        remaining = budget - total_spent
-        pct = (total_spent / budget) * 100 if budget > 0 else 0
-        overview_text.append(f"Monthly Budget: ", style="bold")
-        overview_text.append(f"₹{budget:,.2f}\n", style="bold yellow")
-        overview_text.append(f"Budget Status: ", style="bold")
-        if remaining >= 0:
-            overview_text.append(f"₹{remaining:,.2f} remaining ({pct:.1f}% used)", style="bold green")
-        else:
-            overview_text.append(f"₹{abs(remaining):,.2f} OVER BUDGET! ({pct:.1f}% used)", style="bold red")
+    # 1. Top Stat Cards
+    c1 = Panel(f"[bold green]₹{summary['total_amount']:,.2f}[/bold green]\n[dim]Recorded ({summary['count']} txns)[/dim]", title="💰 Total Spent", border_style="green")
+    
+    budget_val = summary["budget"]
+    if budget_val:
+        rem = budget_val - summary['total_amount']
+        pct = (summary['total_amount'] / budget_val) * 100
+        status_color = "green" if rem >= 0 else "bold red"
+        c2 = Panel(
+            f"[bold yellow]₹{budget_val:,.2f}[/bold yellow]\n[{status_color}]₹{rem:,.2f} remaining ({pct:.1f}% used)[/{status_color}]",
+            title="🎯 Budget Target",
+            border_style="yellow"
+        )
     else:
-        overview_text.append(f"Monthly Budget: ", style="bold")
-        overview_text.append(f"Not set (Set via Budget Menu)", style="dim italic")
-
-    console.print(Panel(overview_text, title=f"[bold cyan]📈 Overview for {month}[/bold cyan]", border_style="cyan", padding=(1, 2)))
-    
-    # 2. Category Breakdown Table with visual bar
-    if summary["by_category"]:
-        cat_table = Table(title=f"[bold magenta]Category Breakdown ({month})[/bold magenta]", border_style="magenta")
-        cat_table.add_column("Category", style="cyan bold", width=25)
-        cat_table.add_column("Spent", justify="right", style="green bold", width=14)
-        cat_table.add_column("Share", justify="right", style="yellow", width=8)
-        cat_table.add_column("Distribution Bar", style="magenta", width=25)
+        c2 = Panel("[dim yellow]No budget configured[/dim yellow]\n[cyan]Option #8 to configure[/cyan]", title="🎯 Budget Target", border_style="dim yellow")
         
-        for item in summary["by_category"]:
-            share_pct = (item["total"] / total_spent * 100) if total_spent > 0 else 0
-            bar_len = int(share_pct / 4) # up to 25 chars
-            bar = "█" * bar_len + "░" * (25 - bar_len)
-            cat_table.add_row(
-                item["category"],
-                f"₹{item['total']:,.2f}",
-                f"{share_pct:.1f}%",
-                bar
-            )
-        console.print(cat_table)
-    else:
-        console.print("[dim yellow]No category expenses recorded this month.[/dim yellow]\n")
+    c3 = Panel(
+        f"[bold cyan]₹{loans_summary['lent_pending']:,.2f}[/bold cyan] [dim](Lent)[/dim]\n[bold red]₹{loans_summary['borrowed_pending']:,.2f}[/bold red] [dim](Debts)[/dim]",
+        title="🤝 Khata Net: ₹{:,.2f}".format(loans_summary['net_balance']),
+        border_style="cyan"
+    )
 
-    # 3. Payment Method Breakdown
+    console.print(Columns([c1, c2, c3]))
+    console.print("\n")
+    
+    # 2. Category Table
+    if summary["by_category"]:
+        cat_table = Table(title=f"[bold magenta]Category Breakdown ({month})[/bold magenta]", border_style="magenta", show_lines=True)
+        cat_table.add_column("Category", style="bold white", width=25)
+        cat_table.add_column("Count", justify="center", style="dim cyan", width=8)
+        cat_table.add_column("Total Spent", justify="right", style="bold green", width=16)
+        cat_table.add_column("Percentage", justify="right", style="bold yellow", width=12)
+        
+        for cat in summary["by_category"]:
+            pct = (cat["total"] / summary["total_amount"] * 100) if summary["total_amount"] > 0 else 0
+            cat_table.add_row(cat["category"], str(cat["count"]), f"₹{cat['total']:,.2f}", f"{pct:.1f}%")
+        console.print(cat_table)
+        console.print("\n")
+    else:
+        console.print(f"[yellow]No expense transactions recorded for {month}.[/yellow]\n")
+
+    # 3. Payment Methods
     if summary["by_payment_method"]:
         pm_table = Table(title=f"[bold yellow]Payment Methods ({month})[/bold yellow]", border_style="yellow")
         pm_table.add_column("Method", style="bold white", width=25)
@@ -510,7 +546,7 @@ def action_analytics_dashboard():
 def action_set_budget():
     console.clear()
     render_banner()
-    print_wizard_box("🎯 Monthly Budget Target", "Define spending limits to stay on top of your financial goals.")
+    print_wizard_box("🎯 Monthly Budget Target", f"Account: {CURRENT_USER['name']} • Define spending limits.")
     
     current_m = datetime.today().strftime('%Y-%m')
     month = questionary.text("Enter month (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
@@ -518,7 +554,8 @@ def action_set_budget():
         return
     month = month.strip()
     
-    current_summary = db.get_summary(month=month)
+    uid = CURRENT_USER["id"]
+    current_summary = db.get_summary(month=month, user_id=uid)
     curr_b = current_summary["budget"]
     curr_b_str = f" (Current: ₹{curr_b:,.2f})" if curr_b else " (Currently not set)"
     
@@ -530,7 +567,7 @@ def action_set_budget():
     if b_val_str is None:
         return
         
-    db.set_budget(month, float(b_val_str))
+    db.set_budget(month, float(b_val_str), user_id=uid)
     console.print(f"\n[bold green]✓ Budget for {month} updated to ₹{float(b_val_str):,.2f}[/bold green]\n")
     pause_prompt()
 
@@ -539,7 +576,7 @@ import report_gen
 def action_export_reports():
     console.clear()
     render_banner()
-    print_wizard_box("📄 Export Financial Reports & Data", "Generate styled PDF statements, Markdown reports, or raw CSV spreadsheets.")
+    print_wizard_box("📄 Export Financial Reports & Data", f"Account: {CURRENT_USER['name']} • Generate PDF, Markdown, or CSVs.")
     
     export_format = questionary.select(
         "Choose Export Format:",
@@ -556,8 +593,8 @@ def action_export_reports():
         return
         
     current_m = datetime.today().strftime('%Y-%m')
+    uid = CURRENT_USER["id"]
     
-    # 1. PDF Export
     if "PDF" in export_format:
         month = questionary.text("Enter month for PDF report (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
         if not month:
@@ -569,7 +606,7 @@ def action_export_reports():
         if include_ai_choice:
             with console.status("[bold cyan]Generating AI analysis for PDF report...[/bold cyan]", spinner="dots"):
                 try:
-                    ai_text = ai_advisor.run_ai_financial_analysis(db.get_expenses(month=month), db.get_summary(month=month), month)
+                    ai_text = ai_advisor.run_ai_financial_analysis(db.get_expenses(month=month, user_id=uid), db.get_summary(month=month, user_id=uid), month)
                 except Exception as e:
                     console.print(f"[yellow]Could not generate AI section ({e}), generating report without AI.[/yellow]")
                     
@@ -588,7 +625,6 @@ def action_export_reports():
                 console.print(f"\n[bold red]❌ PDF Export Error:[/bold red] {err}\n")
         pause_prompt()
 
-    # 2. Markdown Export
     elif "Markdown" in export_format:
         month = questionary.text("Enter month for Markdown report (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
         if not month:
@@ -600,7 +636,7 @@ def action_export_reports():
         if include_ai_choice:
             with console.status("[bold cyan]Generating AI analysis for Markdown report...[/bold cyan]", spinner="dots"):
                 try:
-                    ai_text = ai_advisor.run_ai_financial_analysis(db.get_expenses(month=month), db.get_summary(month=month), month)
+                    ai_text = ai_advisor.run_ai_financial_analysis(db.get_expenses(month=month, user_id=uid), db.get_summary(month=month, user_id=uid), month)
                 except Exception as e:
                     console.print(f"[yellow]Could not generate AI section ({e}).[/yellow]")
                     
@@ -619,9 +655,8 @@ def action_export_reports():
             console.print(f"\n[bold red]❌ Markdown Export Error:[/bold red] {err}\n")
         pause_prompt()
 
-    # 3. CSV Export
     elif "CSV" in export_format:
-        expenses = db.get_expenses()
+        expenses = db.get_expenses(user_id=uid)
         if not expenses:
             console.print("[yellow]No expenses found to export.[/yellow]")
             pause_prompt()
@@ -652,10 +687,11 @@ def action_export_reports():
 def action_manage_loans():
     console.clear()
     render_banner()
-    summary = db.get_loans_summary()
+    uid = CURRENT_USER["id"]
+    summary = db.get_loans_summary(user_id=uid)
     print_wizard_box(
         "🤝 Lending & Borrowing (Khata / Debts)",
-        f"Lent to Others: ₹{summary['lent_pending']:,.2f}  |  You Borrowed: ₹{summary['borrowed_pending']:,.2f}  |  Net: ₹{summary['net_balance']:,.2f}"
+        f"Account: {CURRENT_USER['name']} | Lent: ₹{summary['lent_pending']:,.2f}  |  Debts: ₹{summary['borrowed_pending']:,.2f}  |  Net: ₹{summary['net_balance']:,.2f}"
     )
     
     action = questionary.select(
@@ -697,14 +733,14 @@ def action_manage_loans():
         notes = questionary.text("Notes / Reason (e.g. Lunch split, emergency loan):", style=CUSTOM_STYLE).ask()
         notes = notes.strip() if notes and notes.strip() else None
         
-        loan_id = db.add_loan(loan_type, person.strip(), amount, due_date, notes)
+        loan_id = db.add_loan(loan_type, person.strip(), amount, due_date, notes, user_id=uid)
         type_str = "Lent to" if loan_type == "lent" else "Borrowed from"
         console.print(f"\n[bold green]✓ Recorded: {type_str} {person.strip()} (₹{amount:,.2f}) — ID: #{loan_id}[/bold green]\n")
         pause_prompt()
         
     elif "View Active" in action or "Full Loan History" in action:
         status_filter = "all" if "Full Loan History" in action else "pending"
-        loans = db.get_loans(status_filter=None if status_filter == "all" else "pending")
+        loans = db.get_loans(status_filter=None if status_filter == "all" else "pending", user_id=uid)
         
         if not loans:
             console.print("\n[yellow]No records found matching criteria.[/yellow]\n")
@@ -747,7 +783,7 @@ def action_manage_loans():
         pause_prompt()
         
     elif "Settle / Record Repayment" in action:
-        active_loans = [l for l in db.get_loans() if l["status"] != "settled"]
+        active_loans = [l for l in db.get_loans(user_id=uid) if l["status"] != "settled"]
         if not active_loans:
             console.print("\n[green]No outstanding loans or debts to settle! All caught up.[/green]\n")
             pause_prompt()
@@ -780,7 +816,7 @@ def action_manage_loans():
             return
             
         settle_amt = float(settle_amt_str)
-        res = db.settle_loan(selected_id, settle_amt)
+        res = db.settle_loan(selected_id, settle_amt, user_id=uid)
         if res["success"]:
             console.print(f"\n[bold green]✓ Recorded repayment of ₹{settle_amt:,.2f}![/bold green]")
             if res["status"] == "settled":
@@ -794,9 +830,10 @@ def action_manage_loans():
 def action_manage_categories():
     console.clear()
     render_banner()
-    print_wizard_box("🏷️  Category Manager", "View and register customized spending categories.")
+    print_wizard_box("🏷️  Category Manager", f"Account: {CURRENT_USER['name']} • Customize spending categories.")
     
-    cats = db.get_all_categories()
+    uid = CURRENT_USER["id"]
+    cats = db.get_all_categories(user_id=uid)
     table = Table(title="[bold cyan]Available Categories[/bold cyan]", border_style="cyan")
     table.add_column("#", justify="center", style="dim cyan", width=4)
     table.add_column("Category Name", style="magenta bold")
@@ -813,7 +850,7 @@ def action_manage_categories():
     if action == "➕ Add New Category":
         new_name = questionary.text("Enter category name (e.g. ✈️ Travel):", style=CUSTOM_STYLE).ask()
         if new_name and new_name.strip():
-            if db.add_category(new_name.strip()):
+            if db.add_category(new_name.strip(), user_id=uid):
                 console.print(f"[bold green]✓ Category '{new_name.strip()}' created![/bold green]")
             else:
                 console.print("[bold red]Category already exists.[/bold red]")
@@ -828,7 +865,7 @@ def action_ai_analysis():
     render_banner()
     cfg = ai_advisor.load_ai_config()
     provider_name = "🔷 Google Gemini API" if cfg.get("provider") == "gemini" else f"🦙 Local Ollama ({cfg.get('ollama_model', 'llama3.2:3b')})"
-    print_wizard_box("🤖 SPEND AI Financial Advisor", f"Intelligent Spending Health Check & Budget Optimization via {provider_name}")
+    print_wizard_box("🤖 SPEND AI Financial Advisor", f"Account: {CURRENT_USER['name']} • Analysis via {provider_name}")
     
     current_m = datetime.today().strftime('%Y-%m')
     month = questionary.text("Enter month to analyze (YYYY-MM):", default=current_m, style=CUSTOM_STYLE).ask()
@@ -836,8 +873,9 @@ def action_ai_analysis():
         return
     month = month.strip()
     
-    expenses = db.get_expenses(month=month)
-    summary = db.get_summary(month=month)
+    uid = CURRENT_USER["id"]
+    expenses = db.get_expenses(month=month, user_id=uid)
+    summary = db.get_summary(month=month, user_id=uid)
     
     if not expenses:
         console.print(f"\n[yellow]No transactions found for {month} to analyze. Try logging some expenses first![/yellow]\n")
@@ -958,20 +996,20 @@ def main():
         action_launch_gui()
         return
 
-    db.init_db()
+    # First open the interactive Login / Profile Selector
+    cli_auth_flow()
     
     while True:
         console.clear()
         render_banner()
         print_wizard_box(
-            "💰 SPEND Interactive Financial Manager",
+            f"💰 SPEND Interactive Financial Manager — [{CURRENT_USER['name']}]",
             "Track daily expenses, monitor budget targets, analyze categories, and get AI insights."
         )
         
         choice = questionary.select(
             "Select an action to launch: (Use arrow keys)",
             choices=[
-                questionary.Choice("💻  Launch SPEND GUI (Web App) — Modern cyberpunk browser dashboard", value="gui"),
                 questionary.Choice("➕  Add New Expense            — Record a purchase, bill, or daily transaction", value="add"),
                 questionary.Choice("📜  View & Search Expenses     — Filter transaction history, inspect and delete", value="view"),
                 questionary.Choice("📈  Spend Graph & Trends       — Daily timelines, month-over-month visual charts", value="graphs"),
@@ -982,6 +1020,8 @@ def main():
                 questionary.Choice("🏷️   Manage Categories          — Browse and create custom spending tags", value="categories"),
                 questionary.Choice("⚙️   AI Advisor Settings        — Configure Ollama host / Gemini API key", value="ai_settings"),
                 questionary.Choice("📄  Export Reports & Data      — Generate PDF statements, Markdown & CSVs", value="export"),
+                questionary.Choice("💻  Launch SPEND GUI (Web App) — Modern browser dashboard", value="gui"),
+                questionary.Choice("🔄  Switch User Account        — Log into a different profile", value="switch_user"),
                 questionary.Separator(),
                 questionary.Choice("🚪  Exit SPEND", value="exit")
             ],
@@ -991,6 +1031,8 @@ def main():
         if choice is None or choice == "exit":
             console.print("\n[bold magenta]Thank you for using SPEND! Have a great day! 👋[/bold magenta]\n")
             sys.exit(0)
+        elif choice == "switch_user":
+            cli_auth_flow()
         elif choice == "gui":
             action_launch_gui()
         elif choice == "add":
