@@ -130,22 +130,30 @@ def init_db(db_path: Path = DB_PATH):
 def create_user(username: str, password: str, name: Optional[str] = None, db_path: Path = DB_PATH) -> tuple[bool, str, Optional[int]]:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+    uname = username.strip().lower()
+    
+    # Explicitly check if username already exists
+    cursor.execute("SELECT id FROM users WHERE username = ?", (uname,))
+    if cursor.fetchone():
+        conn.close()
+        return False, "Username already exists", None
+        
     h, s = hash_password(password)
     now = datetime.now().isoformat()
     try:
         cursor.execute(
             "INSERT INTO users (username, password_hash, salt, name, created_at) VALUES (?, ?, ?, ?, ?)",
-            (username.strip().lower(), h, s, name or username, now)
+            (uname, h, s, name or username, now)
         )
         user_id = cursor.lastrowid
         # Seed default categories for this new account
-        cursor.executemany("INSERT INTO categories (user_id, name, color) VALUES (?, ?, ?)", [(user_id, cat[0], cat[1]) for cat in DEFAULT_CATEGORIES])
+        cursor.executemany("INSERT OR IGNORE INTO categories (user_id, name, color) VALUES (?, ?, ?)", [(user_id, cat[0], cat[1]) for cat in DEFAULT_CATEGORIES])
         conn.commit()
         conn.close()
         return True, "Account created successfully", user_id
-    except sqlite3.IntegrityError:
+    except Exception as e:
         conn.close()
-        return False, "Username already exists", None
+        return False, f"Error creating account: {e}", None
 
 def authenticate_user(username: str, password: str, db_path: Path = DB_PATH) -> Optional[Dict[str, Any]]:
     conn = sqlite3.connect(db_path)
